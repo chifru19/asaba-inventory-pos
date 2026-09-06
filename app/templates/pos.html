@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Point of Sale (Checkout)</h2>
+
+<div class="card my-4 p-4 col-md-6">
+    <form method="POST">
+        <div class="mb-3">
+            <label class="form-label">Select Product</label>
+            <select name="product_id" class="form-control" required>
+                {% for p in products %}
+                <option value="{{ p.id }}">{{ p.name }} - ${{ "%.2f"|format(p.selling_price) }} (Stock: {{ p.stock_quantity }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Quantity Sold</label>
+            <input type="number" name="quantity" class="form-control" value="1" min="1" required>
+        </div>
+        <button type="submit" class="btn btn-success">Complete Sale</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+name: Checkov Security Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    name: Run Checkov Static Analysis
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Checkov Action
+        uses: bridgecrewio/checkov-action@master
+        with:
+          soft_fail: true # Allows the build to pass while generating security reports

@@ -1,7 +1,7 @@
 import click
 from app import create_app
-from extensions import db
-from models import Product, Sale, SaleItem
+from app.extensions import db
+from app.models import Product, Sale, SaleItem
 
 app = create_app()
 

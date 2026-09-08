@@ -1,9 +1,7 @@
 import click
-from app import create_app
-from app.extensions import db
-from app.models import Product, Sale, SaleItem
-
-app = create_app()
+from run import app
+from extensions import db
+from models import Product, Sale, SaleItem
 
 @click.group()
 def cli():

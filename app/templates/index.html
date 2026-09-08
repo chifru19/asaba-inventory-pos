@@ -23,10 +23,15 @@
         <a href="/owner">Sales Owner Login</a>
     </header>
     <h2>Sales Register</h2>
-    <p style="font-size: 0.85rem; color: #666;">Record items sold. Stock updates automatically upon checkout.</p>
+    <p style="font-size: 0.85rem; color: #666;">Type an item name or SKU to search instantly.</p>
     
+    <!-- Live Search Input -->
+    <div style="margin-bottom: 15px;">
+        <input type="text" id="searchInput" placeholder="🔍 Search item name or SKU..." onkeyup="searchProducts()" style="width: 100%; padding: 10px; font-size: 1rem; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;">
+    </div>
+
     <form action="/checkout" method="POST">
-        <table>
+        <table id="posTable">
             <thead>
                 <tr>
                     <th>Product</th>
@@ -48,5 +53,26 @@
         </table>
         <button type="submit">Complete Sale & Update Stock</button>
     </form>
+
+    <!-- JavaScript Live Filter -->
+    <script>
+        function searchProducts() {
+            let input = document.getElementById('searchInput').value.toLowerCase();
+            let table = document.getElementById('posTable');
+            let tr = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < tr.length; i++) {
+                let td = tr[i].getElementsByTagName('td')[0];
+                if (td) {
+                    let txtValue = td.textContent || td.innerText;
+                    if (txtValue.toLowerCase().indexOf(input) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }
+            }
+        }
+    </script>
 </body>
 </html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asaba POS - Sales Register</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 15px; background: #f9f9f9; color: #333; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h1 { font-size: 1.4rem; margin: 0; color: #004d40; }
+        a { color: #00796b; text-decoration: none; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; background: #fff; margin-bottom: 15px; }
+        th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; font-size: 0.95rem; }
+        th { background: #004d40; color: white; }
+        input[type="number"] { width: 50px; padding: 5px; }
+        button { background: #00796b; color: white; border: none; padding: 12px; width: 100%; font-size: 1rem; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #004d40; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Asaba POS</h1>
+        <a href="/owner">Sales Owner Login</a>
+    </header>
+    <h2>Sales Register</h2>
+    <p style="font-size: 0.85rem; color: #666;">Record items sold. Stock updates automatically upon checkout.</p>
+    
+    <form action="/checkout" method="POST">
+        <table>
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Qty Sold</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in products %}
+                <tr>
+                    <td><strong>{{ p.name }}</strong><br><small style="color:#888;">{{ p.sku }}</small></td>
+                    <td>₦{{ "%.2f"|format(p.selling_price) }}</td>
+                    <td>{{ p.stock_quantity }}</td>
+                    <td><input type="number" name="product_{{ p.id }}" value="0" min="0" max="{{ p.stock_quantity }}"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="submit">Complete Sale & Update Stock</button>
+    </form>
+</body>
+</html>

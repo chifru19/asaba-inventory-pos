@@ -1,22 +1,18 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from app.models import db
+from app.extensions import db
+from app.models import Product, Sale, SaleItem
 
 def create_app():
-    app = Flask(__name__)
-    
-    # Configure SQLite database for Asaba Ngu's inventory
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///asaba_inventory.db'
+    app = Flask(__name__, template_folder='../templates')
+    app.config['SECRET_KEY'] = 'asaba-secret-key-2026'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///asaba.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = 'asaba-secure-inventory-key'
-    
-    # Initialize extensions
+
     db.init_app(app)
-    migrate = Migrate(app, db)
-    
-    # Register blueprints or routes later
-    from app.routes import bp as main_bp
-    app.register_blueprint(main_bp)
-    
+
+    with app.app_context():
+        from app.routes import init_routes
+        init_routes(app)
+        db.create_all()
+
     return app

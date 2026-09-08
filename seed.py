@@ -1,14 +1,19 @@
 from app import create_app
 from app.extensions import db
-from app.models import Product
+from app.models import Product, Sale, SaleItem
 
 app = create_app()
 
 with app.app_context():
+    # Explicitly create tables mapped to metadata
     db.create_all()
-    
-    # Check if products already exist
-    count = db.session.scalar(db.select(db.func.count()).select_from(Product))
+
+    # Check if products exist safely
+    try:
+        count = db.session.scalar(db.select(db.func.count()).select_from(Product))
+    except Exception:
+        count = 0
+
     if count == 0:
         p1 = Product(name='Drinking Water (3L)', sku='DOUS-3L', purchase_price=150.0, selling_price=250.0, stock_quantity=50, min_threshold=5)
         p2 = Product(name='Refined Garri (5kg)', sku='GARR-5K', purchase_price=1200.0, selling_price=1500.0, stock_quantity=20, min_threshold=3)
@@ -16,6 +21,6 @@ with app.app_context():
 
         db.session.add_all([p1, p2, p3])
         db.session.commit()
-        print('✅ Database successfully seeded with initial products!')
+        print('✅ Database tables created and initial inventory seeded successfully!')
     else:
         print('ℹ️ Database already contains products.')

@@ -1,7 +1,5 @@
-from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
+from app.extensions import db
+from datetime import datetime, timezone
 
 class Product(db.Model):
     __tablename__ = 'products'
@@ -11,19 +9,15 @@ class Product(db.Model):
     sku = db.Column(db.String(50), unique=True, nullable=False)
     purchase_price = db.Column(db.Float, nullable=False)
     selling_price = db.Column(db.Float, nullable=False)
-    stock_quantity = db.Column(db.Integer, default=0)
-    min_threshold = db.Column(db.Integer, default=5)
-    
-    def __repr__(self):
-        return f"<Product {self.name} - Stock: {self.stock_quantity}>"
+    stock_quantity = db.Column(db.Integer, nullable=False, default=0)
+    min_threshold = db.Column(db.Integer, nullable=False, default=5)
 
 class Sale(db.Model):
     __tablename__ = 'sales'
     
     id = db.Column(db.Integer, primary_key=True)
-    total_amount = db.Column(db.Float, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    items = db.relationship('SaleItem', backref='sale', lazy=True, cascade="all, delete-orphan")
+    total_amount = db.Column(db.Float, nullable=False, default=0.0)
+    date_created = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
 class SaleItem(db.Model):
     __tablename__ = 'sale_items'
@@ -32,5 +26,4 @@ class SaleItem(db.Model):
     sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
-    unit_price = db.Column(db.Float, nullable=False)
-    product = db.relationship('Product')
+    price = db.Column(db.Float, nullable=False)

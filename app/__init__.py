@@ -3,7 +3,7 @@ from flask import Flask
 from app.extensions import db
 
 def create_app():
-    app = Flask(__name__, template_folder='../templates')
+    app = Flask(__name__, template_folder='templates')
     app.config['SECRET_KEY'] = 'asaba-secret-key-2026'
 
     os.makedirs(app.instance_path, exist_ok=True)

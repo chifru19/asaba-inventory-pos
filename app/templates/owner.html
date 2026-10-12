@@ -5,116 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asaba POS - Owner Dashboard</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 15px; background: #f9f9f9; color: #333; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        h1 { font-size: 1.4rem; margin: 0; color: #004d40; }
-        a { color: #00796b; text-decoration: none; font-weight: bold; }
-        section { background: #fff; padding: 15px; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        h2 { font-size: 1.1rem; color: #00796b; border-bottom: 2px solid #e0f2f1; padding-bottom: 5px; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 15px; background: #f4f6f8; color: #333; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #004d40; color: white; padding: 15px; border-radius: 6px; }
+        h1 { font-size: 1.4rem; margin: 0; }
+        a { color: #ffeb3b; text-decoration: none; font-weight: bold; }
+        .card { background: #fff; padding: 20px; margin-bottom: 20px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        h2 { font-size: 1.2rem; color: #004d40; margin-top: 0; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 8px; border-bottom: 1px solid #ddd; text-align: left; font-size: 0.9rem; }
-        th { background: #e0f2f1; color: #004d40; }
-        input, button { padding: 8px; box-sizing: border-box; }
-        button { background: #00796b; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #004d40; }
+        th, td { padding: 12px 10px; border-bottom: 1px solid #ddd; text-align: left; font-size: 0.9rem; }
+        th { background: #00796b; color: white; }
     </style>
 </head>
 <body>
     <header>
-        <h1>Owner Dashboard</h1>
-        <a href="/">&larr; Back to POS</a>
+        <h1>Asaba Management Dashboard</h1>
+        <a href="/">← Back to POS Register</a>
     </header>
 
-    {% if not session.get('is_owner') %}
-    <!-- Login Form -->
-    <section style="max-width: 400px; margin: 40px auto; text-align: center;">
-        <h2>Owner Authentication Required</h2>
-        {% if error %}<p style="color: red; font-size: 0.85rem;">{{ error }}</p>{% endif %}
-        <form method="POST" action="/owner" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
-            <input type="password" name="password" placeholder="Enter Owner Password" required style="width: 100%;">
-            <button type="submit">Login</button>
-        </form>
-    </section>
-    {% else %}
-    <!-- Protected Owner Dashboard Content -->
-    <div style="text-align: right; margin-bottom: 15px;">
-        <a href="/owner/logout" style="color: #d32f2f; font-size: 0.85rem;">Logout</a>
+    <div class="card">
+        <h2>📊 Daily Sales Report</h2>
+        <p>Overview of today's total revenue, completed sales, and transaction records.</p>
+        
+        <div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
+            <div style="background: #e0f2f1; padding: 15px; border-radius: 6px; flex: 1; min-width: 200px;">
+                <h3 style="margin: 0 0 5px 0; color: #00796b; font-size: 0.9rem;">Today's Revenue</h3>
+                <p style="font-size: 1.5rem; font-weight: bold; margin: 0; color: #004d40;">₦{{ "%.2f"|format(today_revenue or 0) }}</p>
+            </div>
+            <div style="background: #e0f2f1; padding: 15px; border-radius: 6px; flex: 1; min-width: 200px;">
+                <h3 style="margin: 0 0 5px 0; color: #00796b; font-size: 0.9rem;">Transactions Today</h3>
+                <p style="font-size: 1.5rem; font-weight: bold; margin: 0; color: #004d40;">{{ today_transactions_count or 0 }}</p>
+            </div>
+        </div>
     </div>
 
-    <section>
-        <h2>Add New Product & Set Price</h2>
-        <form method="POST" action="/owner/add" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; margin-top: 10px;">
-            <div>
-                <label style="font-size: 0.8rem; display: block; margin-bottom: 3px;">Product Name</label>
-                <input type="text" name="name" required style="width: 100%;">
-            </div>
-            <div>
-                <label style="font-size: 0.8rem; display: block; margin-bottom: 3px;">SKU Code</label>
-                <input type="text" name="sku" required style="width: 100%;">
-            </div>
-            <div>
-                <label style="font-size: 0.8rem; display: block; margin-bottom: 3px;">Purchase Price (₦)</label>
-                <input type="number" step="0.01" name="purchase_price" required style="width: 100%;">
-            </div>
-            <div>
-                <label style="font-size: 0.8rem; display: block; margin-bottom: 3px;">Selling Price (₦)</label>
-                <input type="number" step="0.01" name="selling_price" required style="width: 100%;">
-            </div>
-            <div>
-                <label style="font-size: 0.8rem; display: block; margin-bottom: 3px;">Initial Stock</label>
-                <input type="number" name="stock_quantity" value="10" required style="width: 100%;">
-            </div>
-            <div>
-                <button type="submit" style="width: 100%;">Add Item</button>
-            </div>
-        </form>
-    </section>
-
-    <section>
+    <div class="card">
         <h2>Current Inventory Status</h2>
         <table>
             <thead>
                 <tr>
-                    <th>Item</th>
+                    <th>Product Name</th>
                     <th>SKU</th>
-                    <th>Stock</th>
-                    <th>Selling Price</th>
+                    <th>Price</th>
+                    <th>Stock Level</th>
                 </tr>
             </thead>
             <tbody>
                 {% for p in products %}
                 <tr>
-                    <td>{{ p.name }}</td>
+                    <td><strong>{{ p.name }}</strong></td>
                     <td>{{ p.sku }}</td>
-                    <td {% if p.stock_quantity <= p.min_threshold %}style="color: red; font-weight: bold;"{% endif %}>{{ p.stock_quantity }}</td>
                     <td>₦{{ "%.2f"|format(p.selling_price) }}</td>
+                    <td>{{ p.stock_quantity }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-    </section>
-
-    <section>
-        <h2>Recent Sales History</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Sale ID</th>
-                    <th>Total</th>
-                    <th>Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for s in sales %}
-                <tr>
-                    <td>#{{ s.id }}</td>
-                    <td>₦{{ "%.2f"|format(s.total_amount) }}</td>
-                    <td>{{ s.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </section>
-    {% endif %}
+    </div>
 </body>
 </html>

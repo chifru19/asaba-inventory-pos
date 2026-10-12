@@ -1,14 +1,9 @@
-from flask import Blueprint
-main_bp = Blueprint("main", __name__)
-
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from app.extensions import db
 from app.models import Product, Sale
 from datetime import datetime
 
 main_bp = Blueprint('main', __name__)
-
-OWNER_PASSWORD = "asaba123"
 
 @main_bp.route('/')
 def index():
@@ -17,69 +12,64 @@ def index():
 
 @main_bp.route('/checkout', methods=['POST'])
 def checkout():
-    total_amount = 0
-    sale_items_summary = []
-
-    for key, value in request.form.items():
-        if key.startswith('product_'):
-            try:
-                qty = int(value)
-                if qty > 0:
-                    product_id = int(key.split('_')[1])
-                    product = Product.query.get(product_id)
-                    if product and product.stock_quantity >= qty:
-                        product.stock_quantity -= qty
-                        item_total = product.selling_price * qty
-                        total_amount += item_total
-                        sale_items_summary.append(f"{product.name} (x{qty}) - ₦{item_total:.2f}")
-            except (ValueError, TypeError):
-                continue
-
-    if total_amount > 0:
-        db.session.commit()
-        new_sale = Sale(total_amount=total_amount, items_sold=", ".join(sale_items_summary), timestamp=datetime.utcnow())
-        db.session.add(new_sale)
-        db.session.commit()
-        
-        session['last_sale'] = {
-            'id': new_sale.id,
-            'total': total_amount,
-            'purchased_items': sale_items_summary,
-            'timestamp': new_sale.timestamp.strftime('%Y-%m-%d %H:%M:%S')
-        }
-        return redirect(url_for('main.receipt'))
-
-    return redirect(url_for('main.index'))
+    cart_data = request.form.getlist('cart_items')
+    # Process checkout logic here...
+    return redirect(url_for('main.receipt'))
 
 @main_bp.route('/receipt')
 def receipt():
-    sale_data = session.get('last_sale')
-    if not sale_data:
-        return redirect(url_for('main.index'))
-    return render_template('receipt.html', sale=sale_data)
+    sale = Sale.query.order_by(Sale.id.desc()).first()
+    return render_template('receipt.html', sale=sale)
 
 @main_bp.route('/owner', methods=['GET', 'POST'])
 def owner():
-    if request.method == 'POST':
-        password = request.form.get('password')
-        if password == OWNER_PASSWORD:
-            session['owner_logged_in'] = True
-            return redirect(url_for('main.owner'))
-        else:
-            return render_template('owner_login.html', error="Invalid password. Please try again.")
-
     if not session.get('owner_logged_in'):
+        if request.method == 'POST':
+            password = request.form.get('password')
+            if password == 'admin123':  # Change password as needed
+                session['owner_logged_in'] = True
+                return redirect(url_for('main.owner'))
+            else:
+                flash('Incorrect password', 'danger')
         return render_template('owner_login.html')
 
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'add_product':
+            name = request.form.get('name')
+            sku = request.form.get('sku')
+            purchase_price = float(request.form.get('purchase_price', 0))
+            selling_price = float(request.form.get('selling_price', 0))
+            stock_quantity = int(request.form.get('stock_quantity', 0))
+            
+            new_product = Product(
+                name=name,
+                sku=sku,
+                purchase_price=purchase_price,
+                selling_price=selling_price,
+                initial_stock=stock_quantity,
+                stock_quantity=stock_quantity
+            )
+            db.session.add(new_product)
+            db.session.commit()
+            flash('New product added successfully!', 'success')
+            
+        elif action == 'update_product':
+            product_id = request.form.get('product_id')
+            product = Product.query.get(product_id)
+            if product:
+                product.selling_price = float(request.form.get('selling_price', product.selling_price))
+                product.stock_quantity = int(request.form.get('stock_quantity', product.stock_quantity))
+                db.session.commit()
+                flash(f'Updated {product.name} successfully!', 'success')
+                
+        return redirect(url_for('main.owner'))
+
     products = Product.query.all()
-    
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     today_sales = Sale.query.filter(Sale.timestamp >= today_start).all()
-    
-    today_revenue = sum(s.total_amount for s in today_sales)
-    today_transactions_count = len(today_sales)
-
-    return render_template('owner.html', products=products, today_revenue=today_revenue, today_transactions_count=today_transactions_count)
+    return render_template('owner.html', products=products, today_sales=today_sales)
 
 @main_bp.route('/owner/logout')
 def owner_logout():

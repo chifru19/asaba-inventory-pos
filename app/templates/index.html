@@ -85,12 +85,11 @@
         </div>
     </form>
 
-    <script>
+        <script>
         function searchProducts() {
             let input = document.getElementById('searchInput').value.toLowerCase();
             let table = document.getElementById('posTable');
             let tr = table.getElementsByTagName('tr');
-
             for (let i = 1; i < tr.length; i++) {
                 let td = tr[i].getElementsByTagName('td')[0];
                 if (td) {
@@ -105,21 +104,19 @@
         }
 
         function calculateTotal() {
+            let total = 0;
             let rows = document.querySelectorAll('#posTable tbody tr');
-            let grandTotal = 0;
-
             rows.forEach(row => {
-                let priceEl = row.querySelector('.product-price');
-                let qtyEl = row.querySelector('.qty-input');
-                
-                if (priceEl && qtyEl) {
-                    let price = parseFloat(priceEl.getAttribute('data-price')) || 0;
-                    let qty = parseInt(qtyEl.value) || 0;
-                    grandTotal += price * qty;
+                let priceSpan = row.querySelector('.product-price');
+                let qtyInput = row.querySelector('.qty-input');
+                if (priceSpan && qtyInput) {
+                    let price = parseFloat(priceSpan.getAttribute('data-price'));
+                    let qty = parseInt(qtyInput.value) || 0;
+                    total += price * qty;
                 }
             });
-
-            document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
+            document.getElementById('grandTotal').innerText = total.toFixed(2);
+            document.getElementById('hiddenTotal').value = total.toFixed(2);
         }
     </script>
 </body>

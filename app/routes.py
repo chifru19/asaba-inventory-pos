@@ -12,22 +12,19 @@ def index():
 
 @main_bp.route('/checkout', methods=['POST'])
 def checkout():
-    # Gather items and calculate total from form submission
-    total = float(request.form.get('total', 0))
-    
-    # Create and save Sale record
-    new_sale = Sale(total_amount=total)
+    total_val = float(request.form.get('total', 0.0))
+    new_sale = Sale(total_amount=total_val)
     db.session.add(new_sale)
     db.session.commit()
-    
-    return redirect(url_for('main.receipt'))
+    return redirect(url_for('main.receipt', sale_id=new_sale.id))
 
 @main_bp.route('/receipt')
 def receipt():
-    sale = Sale.query.order_by(Sale.id.desc()).first()
-    if not sale:
-        flash('No recent sale found.', 'warning')
-        return redirect(url_for('main.index'))
+    sale_id = request.args.get('sale_id')
+    if sale_id:
+        sale = Sale.query.get(sale_id)
+    else:
+        sale = Sale.query.order_by(Sale.id.desc()).first()
     return render_template('receipt.html', sale=sale)
 
 @main_bp.route('/owner', methods=['GET', 'POST'])

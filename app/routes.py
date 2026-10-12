@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from flask import Blueprint, render_template, request, redirect, url_for, session
 from app.extensions import db
 from app.models import Product, Sale
 from datetime import datetime
@@ -34,7 +34,6 @@ def checkout():
 
     if total_amount > 0:
         db.session.commit()
-        # Log sale record
         new_sale = Sale(total_amount=total_amount, items_sold=", ".join(sale_items), timestamp=datetime.utcnow())
         db.session.add(new_sale)
         db.session.commit()
@@ -51,12 +50,12 @@ def owner():
         else:
             return render_template('owner_login.html', error="Invalid password. Please try again.")
 
+    # Enforce login check strictly
     if not session.get('owner_logged_in'):
         return render_template('owner_login.html')
 
     products = Product.query.all()
     
-    # Calculate today's revenue and transactions
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     today_sales = Sale.query.filter(Sale.timestamp >= today_start).all()
     

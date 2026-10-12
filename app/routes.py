@@ -11,9 +11,36 @@ def index():
     return render_template('index.html', products=products)
 
 @main_bp.route('/checkout', methods=['POST'])
+@main_bp.route('/checkout', methods=['POST'])
 def checkout():
-    total_val = float(request.form.get('total', 0.0))
-    new_sale = Sale(total_amount=total_val)
+    import json
+    items_list = []
+    total_val = 0.0
+
+    products = Product.query.all()
+    for product in products:
+        qty_str = request.form.get(f'product_{product.id}', '0')
+        try:
+            qty = int(qty_str)
+        except (ValueError, TypeError):
+            qty = 0
+
+        if qty > 0:
+            product.stock_quantity = max(0, product.stock_quantity - qty)
+            subtotal = float(product.selling_price) * qty
+            total_val += subtotal
+            items_list.append({
+                "name": product.name,
+                "price": float(product.selling_price),
+                "quantity": qty,
+                "subtotal": subtotal
+            })
+
+    if not items_list:
+        total_val = float(request.form.get('total', 0.0))
+
+    sale_items_json = json.dumps(items_list) if items_list else None
+    new_sale = Sale(total_amount=total_val, items_sold=sale_items_json)
     db.session.add(new_sale)
     db.session.commit()
     return redirect(url_for('main.receipt', sale_id=new_sale.id))

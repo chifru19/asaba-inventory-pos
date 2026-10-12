@@ -12,13 +12,22 @@ def index():
 
 @main_bp.route('/checkout', methods=['POST'])
 def checkout():
-    cart_data = request.form.getlist('cart_items')
-    # Process checkout logic here...
+    # Gather items and calculate total from form submission
+    total = float(request.form.get('total', 0))
+    
+    # Create and save Sale record
+    new_sale = Sale(total_amount=total)
+    db.session.add(new_sale)
+    db.session.commit()
+    
     return redirect(url_for('main.receipt'))
 
 @main_bp.route('/receipt')
 def receipt():
     sale = Sale.query.order_by(Sale.id.desc()).first()
+    if not sale:
+        flash('No recent sale found.', 'warning')
+        return redirect(url_for('main.index'))
     return render_template('receipt.html', sale=sale)
 
 @main_bp.route('/owner', methods=['GET', 'POST'])
@@ -26,7 +35,7 @@ def owner():
     if not session.get('owner_logged_in'):
         if request.method == 'POST':
             password = request.form.get('password')
-            if password == 'admin123':  # Change password as needed
+            if password == 'admin123':
                 session['owner_logged_in'] = True
                 return redirect(url_for('main.owner'))
             else:

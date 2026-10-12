@@ -15,7 +15,7 @@ def index():
 @bp.route('/checkout', methods=['POST'])
 def checkout():
     total_amount = 0
-    sale_items = []
+    sale_items_summary = []
 
     for key, value in request.form.items():
         if key.startswith('product_'):
@@ -28,17 +28,33 @@ def checkout():
                         product.stock_quantity -= qty
                         item_total = product.selling_price * qty
                         total_amount += item_total
-                        sale_items.append(f"{product.name} (x{qty})")
+                        sale_items_summary.append(f"{product.name} (x{qty}) - ₦{item_total:.2f}")
             except (ValueError, TypeError):
                 continue
 
     if total_amount > 0:
         db.session.commit()
-        new_sale = Sale(total_amount=total_amount, items_sold=", ".join(sale_items), timestamp=datetime.utcnow())
+        new_sale = Sale(total_amount=total_amount, items_sold=", ".join(sale_items_summary), timestamp=datetime.utcnow())
         db.session.add(new_sale)
         db.session.commit()
+        
+        # Store latest sale details in session to display on receipt page
+        session['last_sale'] = {
+            'id': new_sale.id,
+            'total': total_amount,
+            'items': sale_items_summary,
+            'timestamp': new_sale.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        return redirect(url_for('main.receipt'))
 
     return redirect(url_for('main.index'))
+
+@bp.route('/receipt')
+def receipt():
+    sale_data = session.get('last_sale')
+    if not sale_data:
+        return redirect(url_for('main.index'))
+    return render_template('receipt.html', sale=sale_data)
 
 @bp.route('/owner', methods=['GET', 'POST'])
 def owner():
@@ -50,7 +66,6 @@ def owner():
         else:
             return render_template('owner_login.html', error="Invalid password. Please try again.")
 
-    # Enforce login check strictly
     if not session.get('owner_logged_in'):
         return render_template('owner_login.html')
 

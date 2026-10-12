@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asaba POS - Sale Receipt</title>
+    <style>
+        body { font-family: 'Courier New', Courier, monospace; margin: 0; padding: 20px; background: #f4f6f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: #333; }
+        .receipt-card { background: #fff; padding: 25px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; border-top: 5px solid #004d40; }
+        h2 { color: #004d40; margin-bottom: 5px; font-family: Arial, sans-serif; }
+        .subtitle { font-size: 0.8rem; color: #666; margin-bottom: 15px; }
+        .receipt-info { text-align: left; font-size: 0.85rem; margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px; }
+        .items-list { text-align: left; margin-bottom: 15px; font-size: 0.9rem; border-bottom: 1px dashed #ccc; padding-bottom: 15px; }
+        .item-row { margin-bottom: 8px; }
+        .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; color: #004d40; margin-bottom: 20px; }
+        .btn { display: block; background: #00796b; color: white; text-decoration: none; padding: 12px; border-radius: 4px; font-weight: bold; font-family: Arial, sans-serif; }
+        .btn:hover { background: #004d40; }
+    </style>
+</head>
+<body>
+    <div class="receipt-card">
+        <h2>Asaba Store</h2>
+        <div class="subtitle">Official Sales Receipt</div>
+        
+        <div class="receipt-info">
+            <div><strong>Receipt #:</strong> ASABA-{{ sale.id }}</div>
+            <div><strong>Date:</strong> {{ sale.timestamp }}</div>
+        </div>
+
+        <div class="items-list">
+            <div style="font-weight: bold; margin-bottom: 8px; font-family: Arial, sans-serif;">Items Purchased:</div>
+            {% for item in sale.items %}
+            <div class="item-row">• {{ item }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="total-row">
+            <span>Total Paid:</span>
+            <span>₦{{ "%.2f"|format(sale.total) }}</span>
+        </div>
+
+        <a href="/" class="btn">← New Sale / Return to Register</a>
+    </div>
+</body>
+</html>

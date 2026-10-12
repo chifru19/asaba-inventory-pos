@@ -13,4 +13,14 @@ def create_app():
     from app.routes import bp
     app.register_blueprint(bp)
 
+        with app.app_context():
+        db.create_all()
+        from app.models import Product
+        if not Product.query.first():
+            from seed import seed_database
+            try:
+                seed_database()
+            except Exception:
+                pass
+
     return app

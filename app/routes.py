@@ -81,3 +81,10 @@ def owner():
 def owner_logout():
     session.pop('owner_logged_in', None)
     return redirect(url_for('main.owner'))
+
+
+@main_bp.route('/sales-report')
+def sales_report():
+    sales = Sale.query.order_by(Sale.timestamp.desc()).all()
+    total_revenue = sum(s.total_amount for s in sales)
+    return render_template('sales_report.html', sales=sales, total_revenue=total_revenue)

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Owner Sales Dashboard - Asaba POS</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { color: #004d40; margin-top: 0; }
+        .summary-box { background: #e0f2f1; padding: 15px 20px; border-radius: 6px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: bold; color: #00796b; }
+        .sale-card { border: 1px solid #ddd; border-radius: 6px; margin-bottom: 20px; background: #fafafa; overflow: hidden; }
+        .sale-header { background: #f1f1f1; padding: 10px 15px; font-weight: bold; display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; }
+        table { width: 100%; border-collapse: collapse; background: #fff; }
+        th, td { padding: 10px 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
+        th { background: #f8f9fa; color: #555; }
+        .sale-footer { padding: 10px 15px; text-align: right; font-weight: bold; background: #f9f9f9; }
+        .btn { display: inline-block; padding: 10px 20px; background: #004d40; color: #fff; text-decoration: none; border-radius: 4px; margin-bottom: 20px; font-weight: bold; }
+        .btn:hover { background: #00332c; }
+        .no-sales { text-align: center; color: #888; padding: 30px; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="btn">← Back to Register</a>
+        <h1>Owner Sales Dashboard</h1>
+        
+        <div class="summary-box">
+            <span>Total Store Revenue:</span>
+            <span>CFA {{ "%.2f"|format(total_revenue) }}</span>
+        </div>
+
+        {% if sales %}
+            {% for sale in sales %}
+            <div class="sale-card">
+                <div class="sale-header">
+                    <span>Transaction #{{ sale.id }}</span>
+                    <span>Date: {{ sale.timestamp.strftime('%Y-%m-%d %H:%M:%S') if sale.timestamp else 'N/A' }}</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Qty</th>
+                            <th>Unit Price</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if sale.items_sold %}
+                            {% set items = sale.items_sold | from_json %}
+                            {% if items %}
+                                {% for item in items %}
+                                <tr>
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>CFA {{ "%.2f"|format(item.price) }}</td>
+                                    <td>CFA {{ "%.2f"|format(item.subtotal) }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr><td colspan="4" class="no-sales">Itemized details not available.</td></tr>
+                            {% endif %}
+                        {% else %}
+                            <tr><td colspan="4" class="no-sales">No items recorded.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+                <div class="sale-footer">
+                    Total Paid: CFA {{ "%.2f"|format(sale.total_amount) }}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="no-sales">No sales recorded yet.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

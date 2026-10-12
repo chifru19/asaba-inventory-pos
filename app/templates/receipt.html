@@ -2,15 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Sales Receipt</title>
+    <title>Receipt - Asaba POS</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f9f9f9; display: flex; justify-content: center; }
-        .receipt-card { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 350px; }
-        h2 { text-align: center; color: #006644; margin-bottom: 20px; }
-        .receipt-info { margin-bottom: 20px; font-size: 14px; color: #555; }
-        .total-row { font-size: 18px; font-weight: bold; margin-top: 20px; border-top: 2px solid #ddd; padding-top: 10px; display: flex; justify-content: space-between; }
-        .btn { display: block; text-align: center; background-color: #006644; color: white; padding: 10px; text-decoration: none; border-radius: 4px; margin-top: 20px; }
-        .btn:hover { background-color: #004d33; }
+        body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .receipt-card { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h2 { text-align: center; color: #004d40; margin-top: 0; }
+        .receipt-info { font-size: 0.9rem; color: #555; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        th, td { padding: 8px 4px; font-size: 0.85rem; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #004d40; color: white; }
+        .total-row { font-size: 1.1rem; font-weight: bold; display: flex; justify-content: space-between; border-top: 2px solid #004d40; padding-top: 10px; margin-top: 10px; }
+        .btn { display: block; width: 100%; text-align: center; background: #004d40; color: white; padding: 10px; text-decoration: none; border-radius: 4px; margin-top: 15px; box-sizing: border-box; font-weight: bold; }
+        .btn:hover { background: #00332c; }
     </style>
 </head>
 <body>
@@ -20,6 +23,30 @@
             <div><strong>Receipt #:</strong> ASABA-{{ sale.id }}</div>
             <div><strong>Date:</strong> {{ sale.timestamp.strftime('%Y-%m-%d %H:%M:%S') if sale.timestamp else '' }}</div>
         </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if sale.items_sold %}
+                    {% set items = sale.items_sold | from_json %}
+                    {% for item in items %}
+                    <tr>
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>CFA {{ "%.2f"|format(item.price) }}</td>
+                        <td>CFA {{ "%.2f"|format(item.subtotal) }}</td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
 
         <div class="total-row">
             <span>Total Paid:</span>

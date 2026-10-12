@@ -21,4 +21,8 @@ def create_app():
     from app.routes import main_bp
     app.register_blueprint(main_bp)
 
+    
+    import json
+    app.jinja_env.filters['from_json'] = json.loads
+
     return app

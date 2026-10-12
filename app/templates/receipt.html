@@ -29,7 +29,7 @@
 
         <div class="items-list">
             <div style="font-weight: bold; margin-bottom: 8px; font-family: Arial, sans-serif;">Items Purchased:</div>
-            {% for item in sale.items %}
+            {% for item in sale.purchased_items %}
             <div class="item-row">• {{ item }}</div>
             {% endfor %}
         </div>

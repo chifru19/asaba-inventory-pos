@@ -38,11 +38,10 @@ def checkout():
         db.session.add(new_sale)
         db.session.commit()
         
-        # Store latest sale details in session to display on receipt page
         session['last_sale'] = {
             'id': new_sale.id,
             'total': total_amount,
-            'items': sale_items_summary,
+            'purchased_items': sale_items_summary,
             'timestamp': new_sale.timestamp.strftime('%Y-%m-%d %H:%M:%S')
         }
         return redirect(url_for('main.receipt'))

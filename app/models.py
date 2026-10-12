@@ -1,5 +1,5 @@
+from datetime import datetime
 from app.extensions import db
-from datetime import datetime, timezone
 
 class Product(db.Model):
     __tablename__ = 'products'
@@ -12,18 +12,16 @@ class Product(db.Model):
     stock_quantity = db.Column(db.Integer, nullable=False, default=0)
     min_threshold = db.Column(db.Integer, nullable=False, default=5)
 
+    def __repr__(self):
+        return f"<Product {self.name}>"
+
 class Sale(db.Model):
     __tablename__ = 'sales'
     
     id = db.Column(db.Integer, primary_key=True)
-    total_amount = db.Column(db.Float, nullable=False, default=0.0)
-    date_created = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    total_amount = db.Column(db.Float, nullable=False)
+    items_sold = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-class SaleItem(db.Model):
-    __tablename__ = 'sale_items'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'), nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
-    quantity = db.Column(db.Integer, nullable=False)
-    price = db.Column(db.Float, nullable=False)
+    def __repr__(self):
+        return f"<Sale {self.id} - ₦{self.total_amount}>"

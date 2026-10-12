@@ -1,87 +1,71 @@
-from flask import render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from app.extensions import db
-from app.models import Product, Sale, SaleItem
+from app.models import Product, Sale
+from datetime import datetime
 
-def init_routes(app):
-    @app.route('/')
-    def index():
-        products = Product.query.all()
-        return render_template('index.html', products=products)
+bp = Blueprint('main', __name__)
 
-    @app.route('/owner', methods=['GET', 'POST'])
-    def owner_dashboard():
-        error = None
-        if request.method == 'POST':
-            password = request.form.get('password')
-            if password == 'asaba2026owner':
-                session['is_owner'] = True
-                return redirect(url_for('owner_dashboard'))
-            else:
-                error = 'Invalid password. Access denied.'
+OWNER_PASSWORD = "asaba123"
 
-        products = Product.query.all()
-        sales = Sale.query.order_by(Sale.date_created.desc()).all()
-        return render_template('owner.html', products=products, sales=sales, error=error)
+@bp.route('/')
+def index():
+    products = Product.query.all()
+    return render_template('index.html', products=products)
 
-    @app.route('/owner/add', methods=['POST'])
-    def add_product():
-        if not session.get('is_owner'):
-            return redirect(url_for('owner_dashboard'))
+@bp.route('/checkout', methods=['POST'])
+def checkout():
+    total_amount = 0
+    sale_items = []
 
-        name = request.form.get('name')
-        sku = request.form.get('sku')
-        purchase_price = float(request.form.get('purchase_price', 0))
-        selling_price = float(request.form.get('selling_price', 0))
-        stock_quantity = int(request.form.get('stock_quantity', 0))
-
-        new_product = Product(
-            name=name,
-            sku=sku,
-            purchase_price=purchase_price,
-            selling_price=selling_price,
-            stock_quantity=stock_quantity,
-            min_threshold=5
-        )
-        db.session.add(new_product)
-        db.session.commit()
-        return redirect(url_for('owner_dashboard'))
-
-    @app.route('/owner/logout')
-    def owner_logout():
-        session.pop('is_owner', None)
-        return redirect(url_for('owner_dashboard'))
-
-    @app.route('/checkout', methods=['POST'])
-    def checkout():
-        # Create a new Sale record
-        new_sale = Sale(total_amount=0.0)
-        db.session.add(new_sale)
-        db.session.flush() # Get the new_sale.id
-
-        total_sale_amount = 0.0
-
-        for key, value in request.form.items():
-            if key.startswith('product_'):
-                product_id = int(key.split('_')[1])
-                qty_sold = int(value)
-
-                if qty_sold > 0:
+    for key, value in request.form.items():
+        if key.startswith('product_'):
+            try:
+                qty = int(value)
+                if qty > 0:
+                    product_id = int(key.split('_')[1])
                     product = Product.query.get(product_id)
-                    if product and product.stock_quantity >= qty_sold:
-                        # Deduct stock
-                        product.stock_quantity -= qty_sold
-                        item_total = product.selling_price * qty_sold
-                        total_sale_amount += item_total
+                    if product and product.stock_quantity >= qty:
+                        product.stock_quantity -= qty
+                        item_total = product.selling_price * qty
+                        total_amount += item_total
+                        sale_items.append(f"{product.name} (x{qty})")
+            except (ValueError, TypeError):
+                continue
 
-                        # Record sale item
-                        sale_item = SaleItem(
-                            sale_id=new_sale.id,
-                            product_id=product.id,
-                            quantity=qty_sold,
-                            price=product.selling_price
-                        )
-                        db.session.add(sale_item)
-
-        new_sale.total_amount = total_sale_amount
+    if total_amount > 0:
         db.session.commit()
-        return redirect(url_for('index'))
+        # Log sale record
+        new_sale = Sale(total_amount=total_amount, items_sold=", ".join(sale_items), timestamp=datetime.utcnow())
+        db.session.add(new_sale)
+        db.session.commit()
+
+    return redirect(url_for('main.index'))
+
+@bp.route('/owner', methods=['GET', 'POST'])
+def owner():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == OWNER_PASSWORD:
+            session['owner_logged_in'] = True
+            return redirect(url_for('main.owner'))
+        else:
+            return render_template('owner_login.html', error="Invalid password. Please try again.")
+
+    if not session.get('owner_logged_in'):
+        return render_template('owner_login.html')
+
+    products = Product.query.all()
+    
+    # Calculate today's revenue and transactions
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_sales = Sale.query.filter(Sale.timestamp >= today_start).all()
+    
+    today_revenue = sum(s.total_amount for s in today_sales)
+    today_transactions_count = len(today_sales)
+
+    return render_template('owner.html', products=products, today_revenue=today_revenue, today_transactions_count=today_transactions_count)
+
+@bp.route('/owner/logout')
+def owner_logout():
+    session.pop('owner_logged_in', None)
+    return redirect(url_for('main.owner'))

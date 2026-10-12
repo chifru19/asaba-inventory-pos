@@ -36,14 +36,24 @@
                         <tbody>
             {% if sale.items_sold %}
                 {% set items = sale.items_sold | from_json %}
-                {% for item in items %}
+                {% if items %}
+                    {% for item in items %}
+                    <tr>
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>CFA {{ "%.2f"|format(item.price) }}</td>
+                        <td>CFA {{ "%.2f"|format(item.subtotal) }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #888;">Itemized details not available for this legacy sale.</td>
+                    </tr>
+                {% endif %}
+            {% else %}
                 <tr>
-                    <td>{{ item.name }}</td>
-                    <td>{{ item.quantity }}</td>
-                    <td>CFA {{ "%.2f"|format(item.price) }}</td>
-                    <td>CFA {{ "%.2f"|format(item.subtotal) }}</td>
+                    <td colspan="4" style="text-align: center; color: #888;">No items recorded.</td>
                 </tr>
-                {% endfor %}
             {% endif %}
         </tbody>
         </table>

@@ -1,9 +1,12 @@
+from flask import Blueprint
+main_bp = Blueprint("main", __name__)
+
 from flask import Blueprint, render_template, request, redirect, url_for, session
 from app.extensions import db
 from app.models import Product, Sale
 from datetime import datetime
 
-bp = Blueprint('main', __name__)
+main_bp = Blueprint('main', __name__)
 
 OWNER_PASSWORD = "asaba123"
 

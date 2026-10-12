@@ -10,12 +10,12 @@ main_bp = Blueprint('main', __name__)
 
 OWNER_PASSWORD = "asaba123"
 
-@bp.route('/')
+@main_bp.route('/')
 def index():
     products = Product.query.all()
     return render_template('index.html', products=products)
 
-@bp.route('/checkout', methods=['POST'])
+@main_bp.route('/checkout', methods=['POST'])
 def checkout():
     total_amount = 0
     sale_items_summary = []
@@ -51,14 +51,14 @@ def checkout():
 
     return redirect(url_for('main.index'))
 
-@bp.route('/receipt')
+@main_bp.route('/receipt')
 def receipt():
     sale_data = session.get('last_sale')
     if not sale_data:
         return redirect(url_for('main.index'))
     return render_template('receipt.html', sale=sale_data)
 
-@bp.route('/owner', methods=['GET', 'POST'])
+@main_bp.route('/owner', methods=['GET', 'POST'])
 def owner():
     if request.method == 'POST':
         password = request.form.get('password')
@@ -81,7 +81,7 @@ def owner():
 
     return render_template('owner.html', products=products, today_revenue=today_revenue, today_transactions_count=today_transactions_count)
 
-@bp.route('/owner/logout')
+@main_bp.route('/owner/logout')
 def owner_logout():
     session.pop('owner_logged_in', None)
     return redirect(url_for('main.owner'))

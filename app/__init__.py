@@ -26,3 +26,9 @@ def create_app():
     app.jinja_env.filters['from_json'] = json.loads
 
     return app
+
+from app.models import Product
+from app.extensions import db
+
+# Automatic database seeding on startup
+# (Note: Ensure this is called within your app factory context)

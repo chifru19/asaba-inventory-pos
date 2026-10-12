@@ -17,10 +17,9 @@ def create_app():
         db.create_all()
         from app.models import Product
         if not Product.query.first():
-            from seed import seed_database
-            try:
-                seed_database()
-            except Exception:
-                pass
+            p1 = Product(name="Cashew Nuts (Medium)", sku="CSH-001", purchase_price=1200.0, selling_price=1800.0, stock_quantity=50, min_threshold=5)
+            p2 = Product(name="Plantain Chips", sku="PLN-002", purchase_price=300.0, selling_price=500.0, stock_quantity=100, min_threshold=10)
+            db.session.add_all([p1, p2])
+            db.session.commit()
 
     return app

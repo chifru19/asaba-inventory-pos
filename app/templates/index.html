@@ -68,7 +68,7 @@
                     {% for p in products %}
                     <tr>
                         <td><strong>{{ p.name }}</strong><br><small style="color:#888;">{{ p.sku }}</small></td>
-                        <td>₦<span class="product-price" data-price="{{ p.selling_price }}">{{ "%.2f"|format(p.selling_price) }}</span></td>
+                        <td>FCFA <span class="product-price" data-price="{{ p.selling_price }}">{{ "%.2f"|format(p.selling_price) }}</span></td>
                         <td><input type="number" name="product_{{ p.id }}" class="qty-input" value="0" min="0" max="{{ p.stock_quantity }}" oninput="calculateTotal()"></td>
                     </tr>
                     {% endfor %}
@@ -79,7 +79,7 @@
         <!-- Sticky Checkout Bar -->
         <div class="sticky-checkout">
             <div class="total-display">
-                Total: ₦<span id="grandTotal">0.00</span>
+                Total: FCFA <span id="grandTotal">0.00</span>
             </div>
             <button type="submit">Complete Sale</button>
         </div>

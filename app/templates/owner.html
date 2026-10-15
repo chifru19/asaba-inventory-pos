@@ -77,7 +77,7 @@
             <tr>
                 <td>{{ product.name }}</td>
                 <td>{{ product.sku }}</td>
-                <td>₦{{ "%.2f"|format(product.selling_price) }}</td>
+                <td>FCFA {{ "%.2f"|format(product.selling_price) }}</td>
                 <td>{{ product.initial_stock if product.initial_stock is defined else product.stock_quantity }}</td>
                 <td>{{ product.stock_quantity }}</td>
                 <td>

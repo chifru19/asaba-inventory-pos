@@ -125,3 +125,52 @@ def sales_report():
     sales = Sale.query.order_by(Sale.timestamp.desc()).all()
     total_revenue = sum(s.total_amount for s in sales)
     return render_template('sales_report.html', sales=sales, total_revenue=total_revenue)
+# Role-Based Access & Mobile POS Routes
+def mobile_login():
+    data = request.get_json() or request.form
+    username = data.get('username')
+    password = data.get('password')
+    
+    # Authenticate user against your User model/database
+    user = User.query.filter_by(username=username).first()
+    if user and user.check_password(password):
+        session['user_id'] = user.id
+        session['role'] = user.role  # 'owner' or 'worker'
+        
+        if user.role == 'owner':
+            return {'status': 'success', 'redirect': url_for('owner_dashboard')}
+        else:
+            return {'status': 'success', 'redirect': url_for('pos')}
+            
+    return {'status': 'error', 'message': 'Invalid credentials'}, 401
+
+def pos_terminal():
+    if 'user_id' not in session or session.get('role') != 'worker':
+        if session.get('role') != 'owner':
+            return redirect(url_for('login'))
+    return render_template('pos.html')
+
+@main_bp.route('/mobile-login', methods=['POST'])
+def mobile_login():
+    data = request.get_json() or request.form
+    username = data.get('username')
+    password = data.get('password')
+    
+    user = User.query.filter_by(username=username).first()
+    if user and user.check_password(password):
+        session['user_id'] = user.id
+        session['role'] = user.role
+        
+        if user.role == 'owner':
+            return {'status': 'success', 'redirect': url_for('main.owner_dashboard')}
+        else:
+            return {'status': 'success', 'redirect': url_for('main.pos')}
+            
+    return {'status': 'error', 'message': 'Invalid credentials'}, 401
+
+@main_bp.route('/pos-terminal')
+def pos_terminal():
+    if 'user_id' not in session or session.get('role') != 'worker':
+        if session.get('role') != 'owner':
+            return redirect(url_for('main.login'))
+    return render_template('pos.html')

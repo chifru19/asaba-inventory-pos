@@ -13,26 +13,41 @@ def create_app():
     with app.app_context():
         db.create_all()
         
-        # Create default users and shop data if not exists
+        # Create default owner if not exists
         if not User.query.filter_by(username='admin').first():
             admin = User(username='admin', role='owner', store_id='global')
             admin.set_password('admin123')
             db.session.add(admin)
 
-        # Create workers for Shop 1, Shop 2, and Shop 3
-        shops = ['shop1', 'shop2', 'shop3']
-        for shop in shops:
+        # Define custom inventory for your shops
+        shop_inventories = {
+            'shop1': [
+                {'name': 'Item A (SHOP1)', 'price': 1500.0, 'stock': 50},
+                {'name': 'Item B (SHOP1)', 'price': 3000.0, 'stock': 30}
+            ],
+            'shop2': [
+                {'name': 'Item A (SHOP2)', 'price': 1500.0, 'stock': 40},
+                {'name': 'Item B (SHOP2)', 'price': 3000.0, 'stock': 25}
+            ],
+            'shop3': [
+                {'name': 'Item A (SHOP3)', 'price': 1500.0, 'stock': 50},
+                {'name': 'Item B (SHOP3)', 'price': 3000.0, 'stock': 30}
+            ]
+        }
+
+        # Create workers and populate inventory for each shop
+        for shop, items in shop_inventories.items():
             worker_username = f'worker_{shop}'
             if not User.query.filter_by(username=worker_username).first():
                 worker = User(username=worker_username, role='worker', store_id=shop)
                 worker.set_password('password123')
                 db.session.add(worker)
             
-            # Add sample products for each shop if none exist
+            # Populate products if none exist for this shop
             if not Product.query.filter_by(store_id=shop).first():
-                p1 = Product(name=f'Item A ({shop.upper()})', price=1500.0, stock=50, store_id=shop)
-                p2 = Product(name=f'Item B ({shop.upper()})', price=3000.0, stock=30, store_id=shop)
-                db.session.add_all([p1, p2])
+                for item in items:
+                    p = Product(name=item['name'], price=item['price'], stock=item['stock'], store_id=shop)
+                    db.session.add(p)
 
         db.session.commit()
 

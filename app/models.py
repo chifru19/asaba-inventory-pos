@@ -1,24 +1,30 @@
-from app.extensions import db
 from datetime import datetime
+from app.extensions import db
+from werkzeug.security import generate_password_hash, check_password_hash
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(200), nullable=False)
+    role = db.Column(db.String(20), nullable=False, default='worker') # 'owner' or 'worker'
+    store_id = db.Column(db.String(50), nullable=False, default='shop1') # 'shop1', 'shop2', 'shop3'
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    sku = db.Column(db.String(50), unique=True, nullable=False)
-    purchase_price = db.Column(db.Float, nullable=False)
-    selling_price = db.Column(db.Float, nullable=False)
-    initial_stock = db.Column(db.Integer, default=0, nullable=False)
-    stock_quantity = db.Column(db.Integer, nullable=False)
-    min_threshold = db.Column(db.Integer, default=10)
-
-    def __repr__(self):
-        return f'<Product {self.name}>'
+    price = db.Column(db.Float, nullable=False)
+    stock = db.Column(db.Integer, nullable=False, default=0)
+    store_id = db.Column(db.String(50), nullable=False, default='shop1', index=True)
 
 class Sale(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     total_amount = db.Column(db.Float, nullable=False)
-    items_sold = db.Column(db.Text, nullable=True)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def __repr__(self):
-        return f'<Sale {self.id} - {self.total_amount}>'
+    store_id = db.Column(db.String(50), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

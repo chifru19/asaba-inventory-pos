@@ -1,176 +1,105 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
 from app.extensions import db
-from app.models import Product, Sale
-from datetime import datetime
+from app.models import User, Product, Sale
 
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
 def index():
-    products = Product.query.all()
-    return render_template('index.html', products=products)
+    if 'user_id' in session:
+        if session.get('role') == 'owner':
+            return redirect(url_for('main.owner_dashboard'))
+        return redirect(url_for('main.pos'))
+    return redirect(url_for('main.login'))
 
-@main_bp.route('/checkout', methods=['POST'])
-def checkout():
-    import json
-    items_list = []
-    total_val = 0.0
+@main_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        data = request.get_json() if request.is_json else request.form
+        username = data.get('username')
+        password = data.get('password')
+        
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            session['user_id'] = user.id
+            session['role'] = user.role
+            session['store_id'] = user.store_id
+            
+            if user.role == 'owner':
+                return jsonify({'status': 'success', 'redirect': url_for('main.owner_dashboard')})
+            else:
+                return jsonify({'status': 'success', 'redirect': url_for('main.pos')})
+                
+        return jsonify({'status': 'error', 'message': 'Invalid credentials'}), 401
+    return render_template('login.html')
 
-    products = Product.query.all()
-    for product in products:
-        qty_str = request.form.get(f'product_{product.id}', '0')
-        try:
-            qty = int(qty_str)
-        except (ValueError, TypeError):
-            qty = 0
+@main_bp.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('main.login'))
 
-        if qty > 0:
-            product.stock_quantity = max(0, product.stock_quantity - qty)
-            subtotal = float(product.selling_price) * qty
-            total_val += subtotal
-            items_list.append({
-                "name": product.name,
-                "price": float(product.selling_price),
-                "quantity": qty,
-                "subtotal": subtotal
-            })
+@main_bp.route('/pos')
+def pos():
+    if 'user_id' not in session or session.get('role') != 'worker':
+        return redirect(url_for('main.login'))
+    store_id = session.get('store_id')
+    products = Product.query.filter_by(store_id=store_id).all()
+    return render_template('pos.html', products=products, store_id=store_id)
 
-    if not items_list:
-        total_val = float(request.form.get('total', 0.0))
+@main_bp.route('/owner')
+def owner_dashboard():
+    if 'user_id' not in session or session.get('role') != 'owner':
+        return redirect(url_for('main.login'))
+    
+    selected_store = request.args.get('store_id', 'shop1')
+    products = Product.query.filter_by(store_id=selected_store).all()
+    sales = Sale.query.filter_by(store_id=selected_store).all()
+    total_sales = sum(s.total_amount for s in sales)
+    
+    return render_template('owner.html', products=products, sales=sales, total_sales=total_sales, selected_store=selected_store)
 
-    sale_items_json = json.dumps(items_list) if items_list else None
-    new_sale = Sale(total_amount=total_val, items_sold=sale_items_json)
+@main_bp.route('/api/sell', methods=['POST'])
+def api_sell():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+        
+    data = request.get_json()
+    items = data.get('items', []) # List of {product_id, quantity}
+    store_id = session.get('store_id')
+    
+    if session.get('role') == 'owner':
+        store_id = data.get('store_id', 'shop1')
+
+    total_amount = 0
+    sale_items = []
+
+    for item in items:
+        product = Product.query.filter_by(id=item['product_id'], store_id=store_id).first()
+        if not product or product.stock < item['quantity']:
+            return jsonify({'error': f'Insufficient stock or product not found'}), 400
+        
+        product.stock -= item['quantity']
+        subtotal = product.price * item['quantity']
+        total_amount += subtotal
+
+    new_sale = Sale(total_amount=total_amount, store_id=store_id, user_id=session['user_id'])
     db.session.add(new_sale)
     db.session.commit()
-    return redirect(url_for('main.receipt', sale_id=new_sale.id))
 
-@main_bp.route('/receipt')
-def receipt():
-    sale_id = request.args.get('sale_id')
-    if sale_id:
-        sale = Sale.query.get(sale_id)
-    else:
-        sale = Sale.query.order_by(Sale.id.desc()).first()
-    return render_template('receipt.html', sale=sale)
+    return jsonify({'success': True, 'total_amount': total_amount})
 
-@main_bp.route('/owner', methods=['GET', 'POST'])
-def owner():
-    if not session.get('owner_logged_in'):
-        if request.method == 'POST':
-            password = request.form.get('password')
-            if password == 'admin123':
-                session['owner_logged_in'] = True
-                return redirect(url_for('main.owner'))
-            else:
-                flash('Incorrect password', 'danger')
-        return render_template('owner_login.html')
-
-    if request.method == 'POST':
-        action = request.form.get('action')
+@main_bp.route('/api/products', methods=['POST'])
+def add_product():
+    if 'user_id' not in session or session.get('role') != 'owner':
+        return jsonify({'error': 'Unauthorized'}), 401
         
-        if action == 'add_product':
-            name = request.form.get('name')
-            sku = request.form.get('sku')
-            purchase_price = float(request.form.get('purchase_price', 0))
-            selling_price = float(request.form.get('selling_price', 0))
-            stock_quantity = int(request.form.get('stock_quantity', 0))
-            
-            new_product = Product(
-                name=name,
-                sku=sku,
-                purchase_price=purchase_price,
-                selling_price=selling_price,
-                initial_stock=stock_quantity,
-                stock_quantity=stock_quantity
-            )
-            db.session.add(new_product)
-            db.session.commit()
-            flash('New product added successfully!', 'success')
-            
-        elif action == 'update_product':
-            product_id = request.form.get('product_id')
-            product = Product.query.get(product_id)
-            if product:
-                product.selling_price = float(request.form.get('selling_price', product.selling_price))
-                product.stock_quantity = int(request.form.get('stock_quantity', product.stock_quantity))
-                db.session.commit()
-                flash(f'Updated {product.name} successfully!', 'success')
-            
-        return redirect(url_for('main.owner'))
+    data = request.get_json()
+    name = data.get('name')
+    price = data.get('price')
+    stock = data.get('stock')
+    store_id = data.get('store_id', 'shop1')
 
-    products = Product.query.all()
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    today_sales = Sale.query.filter(Sale.timestamp >= today_start).all()
-    return render_template('owner.html', products=products, today_sales=today_sales)
-
-@main_bp.route('/owner/delete/<int:product_id>', methods=['POST'])
-def delete_product(product_id):
-    if not session.get('owner_logged_in'):
-        flash('Please log in first.', 'danger')
-        return redirect(url_for('main.owner'))
-    
-    product = Product.query.get_or_404(product_id)
-    db.session.delete(product)
+    product = Product(name=name, price=price, stock=stock, store_id=store_id)
+    db.session.add(product)
     db.session.commit()
-    flash(f'Product "{product.name}" deleted successfully!', 'success')
-    return redirect(url_for('main.owner'))
-
-@main_bp.route('/owner/logout')
-def owner_logout():
-    session.pop('owner_logged_in', None)
-    return redirect(url_for('main.owner'))
-
-@main_bp.route('/sales-report')
-def sales_report():
-    sales = Sale.query.order_by(Sale.timestamp.desc()).all()
-    total_revenue = sum(s.total_amount for s in sales)
-    return render_template('sales_report.html', sales=sales, total_revenue=total_revenue)
-# Role-Based Access & Mobile POS Routes
-def mobile_login():
-    data = request.get_json() or request.form
-    username = data.get('username')
-    password = data.get('password')
-    
-    # Authenticate user against your User model/database
-    user = User.query.filter_by(username=username).first()
-    if user and user.check_password(password):
-        session['user_id'] = user.id
-        session['role'] = user.role  # 'owner' or 'worker'
-        
-        if user.role == 'owner':
-            return {'status': 'success', 'redirect': url_for('owner_dashboard')}
-        else:
-            return {'status': 'success', 'redirect': url_for('pos')}
-            
-    return {'status': 'error', 'message': 'Invalid credentials'}, 401
-
-def pos_terminal():
-    if 'user_id' not in session or session.get('role') != 'worker':
-        if session.get('role') != 'owner':
-            return redirect(url_for('login'))
-    return render_template('pos.html')
-
-@main_bp.route('/mobile-login', methods=['POST'])
-def mobile_login():
-    data = request.get_json() or request.form
-    username = data.get('username')
-    password = data.get('password')
-    
-    user = User.query.filter_by(username=username).first()
-    if user and user.check_password(password):
-        session['user_id'] = user.id
-        session['role'] = user.role
-        
-        if user.role == 'owner':
-            return {'status': 'success', 'redirect': url_for('main.owner_dashboard')}
-        else:
-            return {'status': 'success', 'redirect': url_for('main.pos')}
-            
-    return {'status': 'error', 'message': 'Invalid credentials'}, 401
-
-@main_bp.route('/pos-terminal')
-def pos_terminal():
-    if 'user_id' not in session or session.get('role') != 'worker':
-        if session.get('role') != 'owner':
-            return redirect(url_for('main.login'))
-    return render_template('pos.html')
+    return jsonify({'success': True, 'message': 'Product added successfully'})

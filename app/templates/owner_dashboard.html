@@ -15,9 +15,9 @@
             <div class="col-md-6">
                 <label class="form-label fw-bold">Select Store to View:</label>
                 <select id="store-selector" class="form-select w-auto d-inline-block ms-2" onchange="switchStore(this.value)">
-                    <option value="shop1" {% if selected_store == 'shop1' %}selected{% endif %}>Shop 1</option>
-                    <option value="shop2" {% if selected_store == 'shop2' %}selected{% endif %}>Shop 2</option>
-                    <option value="shop3" {% if selected_store == 'shop3' %}selected{% endif %}>Shop 3</option>
+                    <option value="shop1" {% if current_store == 'shop1' %}selected{% endif %}>Shop 1</option>
+                    <option value="shop2" {% if current_store == 'shop2' %}selected{% endif %}>Shop 2</option>
+                    <option value="shop3" {% if current_store == 'shop3' %}selected{% endif %}>Shop 3</option>
                 </select>
             </div>
         </div>
@@ -26,9 +26,9 @@
             <!-- Inventory & Add Product Form -->
             <div class="col-md-6">
                 <div class="card p-3 mb-4 shadow-sm">
-                    <h4>Add Product to {{ selected_store.upper() }}</h4>
+                    <h4>Add Product to {{ current_store.upper() }}</h4>
                     <form id="add-product-form" onsubmit="addProduct(event)">
-                        <input type="hidden" id="prod-store-id" value="{{ selected_store }}">
+                        <input type="hidden" id="prod-store-id" value="{{ current_store }}">
                         <div class="mb-2">
                             <label class="form-label">Product Name</label>
                             <input type="text" id="prod-name" class="form-control" required>
@@ -46,7 +46,7 @@
                 </div>
 
                 <div class="card p-3 mb-4 shadow-sm">
-                    <h4>Inventory for {{ selected_store.upper() }}</h4>
+                    <h4>Inventory for {{ current_store.upper() }}</h4>
                     <table class="table">
                         <thead><tr><th>Name</th><th>Price</th><th>Stock</th></tr></thead>
                         <tbody>

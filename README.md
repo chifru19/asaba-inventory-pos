@@ -1,20 +1,20 @@
-Markdown
-# Asaba Ngu Inventory & POS System
+# Asaba Inventory & POS System
 
-A custom, lightweight Inventory and Point of Sale (POS) application built specifically for **Asaba Ngu**. Designed to track real-time stock levels, record daily revenue, and automate low-stock reorder alerts.
+A custom, lightweight multi-store Inventory and Point of Sale (POS) application built specifically for Ngia Ngu's shops. Designed to manage multiple stores, track real-time stock levels, record daily revenue, and automate low-stock reorder alerts.
 
 ## Features
-* **Dashboard**: Live calculation of today's total sales revenue and active product counts.
+
+* **Multi-Store Management**: Supports separate inventory catalogs and sales summaries across multiple shops (Shop 1, Shop 2, and Shop 3).
+* **Owner Dashboard**: Live calculation of store-specific sales revenue, active product counts, and easy store switching.
 * **Automated Reorder Alerts**: Instantly flags items that fall below their minimum stock threshold.
-* **Inventory Catalog**: Manages product registration, SKUs, purchase prices, and selling prices.
+* **Inventory Catalog**: Manages product registration, prices in CFA, initial stock, and store assignment.
 * **POS Checkout**: Seamlessly deducts stock quantities and logs transactions per sale.
 
 ## Tech Stack
+
 * **Backend**: Python (Flask, Flask-SQLAlchemy, Flask-Migrate, Gunicorn)
 * **Database**: SQLite
 * **Frontend**: Bootstrap 5, Jinja2 Templates
-
----
 
 ## Local Demonstration Setup
 
@@ -34,9 +34,7 @@ python seed.py
 4. Run the Application with Gunicorn
 Bash
 gunicorn run:app --bind 0.0.0.0:8000
-Once running, open your browser and navigate to:
-
-http://127.0.0.1:8000
+Once running, open your browser and navigate to:http://127.0.0.1:8000
 
 Developer Profile
 Lead Developer: Frank Fru
@@ -50,30 +48,29 @@ LinkedIn: LinkedIn Profile
 Contact Email: chifru19@googlemail.com
 
 
----
-
 ### Follow-Up Commands
 
-Run the following commands in your terminal to update your repository with this clean file:
+Run the following command in your terminal to update your repository with this clean file:
 
 ```bash
 cat << 'EOF' > README.md
-# Asaba Ngu Inventory & POS System
+# Asaba Inventory & POS System
 
-A custom, lightweight Inventory and Point of Sale (POS) application built specifically for **Asaba Ngu**. Designed to track real-time stock levels, record daily revenue, and automate low-stock reorder alerts.
+A custom, lightweight multi-store Inventory and Point of Sale (POS) application built specifically for Ngia Ngu's shops. Designed to manage multiple stores, track real-time stock levels, record daily revenue, and automate low-stock reorder alerts.
 
 ## Features
-* **Dashboard**: Live calculation of today's total sales revenue and active product counts.
+
+* **Multi-Store Management**: Supports separate inventory catalogs and sales summaries across multiple shops (Shop 1, Shop 2, and Shop 3).
+* **Owner Dashboard**: Live calculation of store-specific sales revenue, active product counts, and easy store switching.
 * **Automated Reorder Alerts**: Instantly flags items that fall below their minimum stock threshold.
-* **Inventory Catalog**: Manages product registration, SKUs, purchase prices, and selling prices.
+* **Inventory Catalog**: Manages product registration, prices in CFA, initial stock, and store assignment.
 * **POS Checkout**: Seamlessly deducts stock quantities and logs transactions per sale.
 
 ## Tech Stack
+
 * **Backend**: Python (Flask, Flask-SQLAlchemy, Flask-Migrate, Gunicorn)
 * **Database**: SQLite
 * **Frontend**: Bootstrap 5, Jinja2 Templates
-
----
 
 ## Local Demonstration Setup
 
@@ -93,9 +90,7 @@ python seed.py
 4. Run the Application with Gunicorn
 Bash
 gunicorn run:app --bind 0.0.0.0:8000
-Once running, open your browser and navigate to:
-
-http://127.0.0.1:8000
+Once running, open your browser and navigate to:http://127.0.0.1:8000
 
 Developer Profile
 Lead Developer: Frank Fru

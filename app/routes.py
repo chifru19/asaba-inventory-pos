@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
 from app.extensions import db
 from app.models import User, Product, Sale
+from datetime import datetime
 
 main_bp = Blueprint('main', __name__)
 
@@ -9,7 +10,8 @@ def index():
     if 'user_id' in session:
         if session.get('role') == 'owner':
             return redirect(url_for('main.owner_dashboard'))
-        return redirect(url_for('main.pos'))
+        else:
+            return redirect(url_for('main.pos'))
     return redirect(url_for('main.login'))
 
 @main_bp.route('/login', methods=['GET', 'POST'])
@@ -33,57 +35,48 @@ def login():
         return jsonify({'status': 'error', 'message': 'Invalid credentials'}), 401
     return render_template('login.html')
 
-@main_bp.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('main.login'))
-
 @main_bp.route('/pos')
 def pos():
     if 'user_id' not in session or session.get('role') != 'worker':
         return redirect(url_for('main.login'))
-    store_id = session.get('store_id')
+    store_id = session.get('store_id', 'shop1')
     products = Product.query.filter_by(store_id=store_id).all()
     return render_template('pos.html', products=products, store_id=store_id)
 
-@main_bp.route('/owner')
+@main_bp.route('/owner', methods=['GET', 'POST'])
 def owner_dashboard():
     if 'user_id' not in session or session.get('role') != 'owner':
         return redirect(url_for('main.login'))
     
-    selected_store = request.args.get('store_id', 'shop1')
-    products = Product.query.filter_by(store_id=selected_store).all()
-    sales = Sale.query.filter_by(store_id=selected_store).all()
+    store_id = request.args.get('store_id', 'shop1')
+    products = Product.query.filter_by(store_id=store_id).all()
+    sales = Sale.query.filter_by(store_id=store_id).order_by(Sale.created_at.desc()).all()
     total_sales = sum(s.total_amount for s in sales)
     
-    return render_template('owner.html', products=products, sales=sales, total_sales=total_sales, selected_store=selected_store)
+    return render_template('owner_dashboard.html', products=products, sales=sales, total_sales=total_sales, current_store=store_id)
 
 @main_bp.route('/api/sell', methods=['POST'])
-def api_sell():
+def sell():
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
-        
-    data = request.get_json()
-    items = data.get('items', []) # List of {product_id, quantity}
-    store_id = session.get('store_id')
     
+    data = request.get_json()
+    items = data.get('items', [])
+    store_id = session.get('store_id') or request.args.get('store_id', 'shop1')
     if session.get('role') == 'owner':
-        store_id = data.get('store_id', 'shop1')
+        store_id = request.args.get('store_id', 'shop1')
 
     total_amount = 0
-    sale_items = []
-
     for item in items:
-        product = Product.query.filter_by(id=item['product_id'], store_id=store_id).first()
-        if not product or product.stock < item['quantity']:
-            return jsonify({'error': f'Insufficient stock or product not found'}), 400
-        
-        product.stock -= item['quantity']
-        subtotal = product.price * item['quantity']
-        total_amount += subtotal
+        product = Product.query.get(item['product_id'])
+        if product and product.stock >= item['quantity']:
+            product.stock -= item['quantity']
+            total_amount += product.price * item['quantity']
+        else:
+            return jsonify({'error': f"Insufficient stock for {product.name if product else 'item'}"}), 400
 
-    new_sale = Sale(total_amount=total_amount, store_id=store_id, user_id=session['user_id'])
-    db.session.add(new_sale)
+    sale = Sale(total_amount=total_amount, store_id=store_id, user_id=session['user_id'])
+    db.session.add(sale)
     db.session.commit()
 
     return jsonify({'success': True, 'total_amount': total_amount})
@@ -92,7 +85,7 @@ def api_sell():
 def add_product():
     if 'user_id' not in session or session.get('role') != 'owner':
         return jsonify({'error': 'Unauthorized'}), 401
-        
+
     data = request.get_json()
     name = data.get('name')
     price = data.get('price')
@@ -103,3 +96,8 @@ def add_product():
     db.session.add(product)
     db.session.commit()
     return jsonify({'success': True, 'message': 'Product added successfully'})
+
+@main_bp.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('main.login'))

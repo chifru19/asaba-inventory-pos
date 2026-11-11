@@ -20,8 +20,9 @@
                         <div class="card h-100">
                             <div class="card-body">
                                 <h5 class="card-title">{{ p.name }}</h5>
-                                <p class="card-text">Price: ₦{{ p.price }}<br>Stock: <span id="stock-{{ p.id|string }}">{{ p.stock }}</span></p>
-                                <button class="btn btn-success btn-sm" onclick="addToCart('{{ p.id|string }}', '{{ p.name }}', {{ p.price }})">Add to Sale</button>
+                                <!-- prettier-ignore -->
+                                <p class="card-text">Price: ₦{{ p.price }}<br>Stock: <span id="stock-{{ p.id }}">{{ p.stock }}</span></p>
+                                <button class="btn btn-success btn-sm" onclick="addToCart('{{ p.id }}', '{{ p.name }}', {{ p.price }})">Add to Sale</button>
                             </div>
                         </div>
                     </div>

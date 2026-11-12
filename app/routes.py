@@ -133,3 +133,28 @@ def add_to_cart(product_id):
         })
     session['cart'] = cart
     return redirect(url_for('main.pos'))
+
+@main_bp.route('/pos/complete', methods=['POST'])
+def complete_sale():
+    if 'user_id' not in session:
+        return redirect(url_for('main.login'))
+    cart = session.get('cart', [])
+    if not cart:
+        return redirect(url_for('main.pos'))
+    
+    store_id = session.get('shop') or session.get('store_id') or 'shop1'
+    total_amount = sum(item['subtotal'] for item in cart)
+    
+    # Create sale record
+    sale = Sale(total_amount=total_amount, store_id=store_id, user_id=session['user_id'])
+    db.session.add(sale)
+    
+    # Deduct stock
+    for item in cart:
+        product = Product.query.get(item['product_id'])
+        if product:
+            product.stock = max(0, product.stock - item['quantity'])
+            
+    db.session.commit()
+    session.pop('cart', None)
+    return redirect(url_for('main.pos'))

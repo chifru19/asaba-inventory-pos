@@ -46,7 +46,7 @@ def pos():
     total = sum(item['subtotal'] for item in cart)
     from datetime import datetime
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    today_sales = Sale.query.filter(Sale.store_id == store_id, Sale.date >= today_start).order_by(Sale.date.desc()).all()
+    today_sales = Sale.query.filter_by(store_id=store_id).all()
     return render_template('pos.html', products=products, cart=cart, total=total, store_id=store_id, today_sales=today_sales)
 @main_bp.route('/owner_dashboard')
 def owner_dashboard():

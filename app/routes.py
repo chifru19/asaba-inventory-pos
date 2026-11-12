@@ -12,7 +12,7 @@ def index():
             return redirect(url_for('main.owner_dashboard'))
         else:
             return redirect(url_for('main.pos'))
-    return redirect(url_for('main.login'))
+    return redirect(url_for('main.owner_dashboard'))
 
 @main_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -39,7 +39,7 @@ def login():
 def pos():
     store_id = session.get('shop')
     if not store_id:
-        return redirect(url_for('main.login'))
+        return redirect(url_for('main.owner_dashboard'))
     products = Product.query.filter_by(store_id=store_id).all()
     cart = session.get('cart', [])
     total = sum(item['subtotal'] for item in cart)
@@ -49,7 +49,7 @@ def pos():
     return render_template('pos.html', products=products, cart=cart, total=total, store_id=store_id, today_sales=today_sales)
 def owner_dashboard():
     if 'user_id' not in session or session.get('role') != 'owner':
-        return redirect(url_for('main.login'))
+        return redirect(url_for('main.owner_dashboard'))
     selected_store = request.args.get('store_id', 'shop1')
     products = Product.query.filter_by(store_id=selected_store).all()
     sales = Sale.query.filter_by(store_id=selected_store).all()
@@ -100,4 +100,4 @@ def add_product():
 @main_bp.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('main.login'))
+    return redirect(url_for('main.owner_dashboard'))

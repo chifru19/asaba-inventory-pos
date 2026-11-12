@@ -47,9 +47,10 @@ def pos():
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     today_sales = Sale.query.filter(Sale.store_id == store_id, Sale.timestamp >= today_start).order_by(Sale.timestamp.desc()).all()
     return render_template('pos.html', products=products, cart=cart, total=total, store_id=store_id, today_sales=today_sales)
+@main_bp.route('/owner_dashboard')
 def owner_dashboard():
     if 'user_id' not in session or session.get('role') != 'owner':
-        return redirect(url_for('main.owner_dashboard'))
+        return redirect(url_for('main.login'))
     selected_store = request.args.get('store_id', 'shop1')
     products = Product.query.filter_by(store_id=selected_store).all()
     sales = Sale.query.filter_by(store_id=selected_store).all()
@@ -100,4 +101,4 @@ def add_product():
 @main_bp.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('main.owner_dashboard'))
+    return redirect(url_for('main.login'))

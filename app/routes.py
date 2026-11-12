@@ -107,3 +107,29 @@ def add_product():
 def logout():
     session.clear()
     return redirect(url_for('main.login'))
+
+@main_bp.route('/pos/add/<int:product_id>', methods=['POST'])
+def add_to_cart(product_id):
+    if 'user_id' not in session:
+        return redirect(url_for('main.login'))
+    cart = session.get('cart', [])
+    product = Product.query.get_or_404(product_id)
+    
+    # Check if item already in cart
+    found = False
+    for item in cart:
+        if item['product_id'] == product_id:
+            item['quantity'] += 1
+            item['subtotal'] = item['quantity'] * product.price
+            found = True
+            break
+    if not found:
+        cart.append({
+            'product_id': product.id,
+            'name': product.name,
+            'price': product.price,
+            'quantity': 1,
+            'subtotal': product.price
+        })
+    session['cart'] = cart
+    return redirect(url_for('main.pos'))

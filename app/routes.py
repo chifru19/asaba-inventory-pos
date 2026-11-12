@@ -31,8 +31,6 @@ def login():
             session['role'] = user.role
             session['store_id'] = user.store_id
             session['shop'] = user.store_id
-            session['shop'] = user.store_id
-            session['shop'] = user.store_id
             
             if user.role == 'owner':
                 return jsonify({'status': 'success', 'redirect': url_for('main.owner_dashboard')})
@@ -46,13 +44,23 @@ def login():
 def pos():
     store_id = session.get('shop') or session.get('store_id') or 'shop1'
     session['shop'] = store_id
+    
+    search_query = request.args.get('search', '').strip()
+    
     products = Product.query.filter_by(store_id=store_id).all()
     cart = session.get('cart', [])
     total = sum(item['subtotal'] for item in cart)
-    from datetime import datetime
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    today_sales = Sale.query.filter_by(store_id=store_id).all()
+    
+    sales_query = Sale.query.filter_by(store_id=store_id)
+    if search_query:
+        try:
+            sales_query = sales_query.filter(Sale.id == int(search_query))
+        except ValueError:
+            pass
+            
+    today_sales = sales_query.all()
     return render_template('pos.html', products=products, cart=cart, total=total, store_id=store_id, today_sales=today_sales)
+
 @main_bp.route('/owner_dashboard')
 def owner_dashboard():
     if 'user_id' not in session or session.get('role') != 'owner':
@@ -62,6 +70,7 @@ def owner_dashboard():
     sales = Sale.query.filter_by(store_id=selected_store).all()
     total_sales = sum(s.total_amount for s in sales)
     return render_template('owner_dashboard.html', products=products, sales=sales, total_sales=total_sales, current_store=selected_store, selected_store=selected_store)
+
 @main_bp.route('/api/sell', methods=['POST'])
 def sell():
     if 'user_id' not in session:
@@ -113,17 +122,18 @@ def logout():
 def add_to_cart(product_id):
     if 'user_id' not in session:
         return redirect(url_for('main.login'))
+        
     cart = session.get('cart', [])
     product = Product.query.get_or_404(product_id)
-    
-    # Check if item already in cart
+
     found = False
     for item in cart:
-        if item['product_id'] == product_id:
+        if item.get('product_id') == product_id:
             item['quantity'] += 1
             item['subtotal'] = item['quantity'] * product.price
             found = True
             break
+            
     if not found:
         cart.append({
             'product_id': product.id,
@@ -132,7 +142,9 @@ def add_to_cart(product_id):
             'quantity': 1,
             'subtotal': product.price
         })
+        
     session['cart'] = cart
+    session.modified = True
     return redirect(url_for('main.pos'))
 
 @main_bp.route('/pos/complete', methods=['POST'])
@@ -146,11 +158,9 @@ def complete_sale():
     store_id = session.get('shop') or session.get('store_id') or 'shop1'
     total_amount = sum(item['subtotal'] for item in cart)
     
-    # Create sale record
     sale = Sale(total_amount=total_amount, store_id=store_id, user_id=session['user_id'])
     db.session.add(sale)
     
-    # Deduct stock
     for item in cart:
         product = Product.query.get(item['product_id'])
         if product:
@@ -158,4 +168,5 @@ def complete_sale():
             
     db.session.commit()
     session.pop('cart', None)
+    session.modified = True
     return redirect(url_for('main.pos'))

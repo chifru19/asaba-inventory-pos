@@ -5,6 +5,10 @@ from datetime import datetime
 
 main_bp = Blueprint('main', __name__)
 
+@main_bp.route('/health')
+def health_check():
+    return "OK", 200
+
 @main_bp.route('/')
 def index():
     if 'user_id' in session:
@@ -12,7 +16,7 @@ def index():
             return redirect(url_for('main.owner_dashboard'))
         else:
             return redirect(url_for('main.pos'))
-    return redirect(url_for('main.owner_dashboard'))
+    return redirect(url_for('main.login'))
 
 @main_bp.route('/login', methods=['GET', 'POST'])
 def login():

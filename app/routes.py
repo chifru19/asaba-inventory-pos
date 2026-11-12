@@ -61,6 +61,7 @@ def pos():
     today_sales = sales_query.all()
     return render_template('pos.html', products=products, cart=cart, total=total, store_id=store_id, today_sales=today_sales)
 
+@main_bp.route('/owner')
 @main_bp.route('/owner_dashboard')
 def owner_dashboard():
     if 'user_id' not in session or session.get('role') != 'owner':

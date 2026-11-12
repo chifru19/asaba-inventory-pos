@@ -36,7 +36,7 @@
                     <ul class="list-group mb-3">
                         {% for item in cart %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            {{ item.product.name }} (x{{ item.quantity }})
+                            {{ item.name }} (x{{ item.quantity }})
                             <span>CFA {{ item.subtotal }}</span>
                         </li>
                         {% endfor %}
@@ -56,10 +56,9 @@
                         {% for sale in today_sales %}
                         <li class="list-group-item">
                             <div class="d-flex justify-content-between">
-                                <span class="fw-bold">{{ sale.product_name }}</span>
-                                <span>x{{ sale.quantity }}</span>
+                                <span class="fw-bold">Sale #{{ sale.id }}</span>
+                                <span>CFA {{ sale.total_amount }}</span>
                             </div>
-                            <small class="text-muted">CFA {{ sale.total_price }} — {{ sale.timestamp.strftime('%H:%M') }}</small>
                         </li>
                         {% endfor %}
                     </ul>

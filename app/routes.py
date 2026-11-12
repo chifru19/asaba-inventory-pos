@@ -27,6 +27,7 @@ def login():
             session['role'] = user.role
             session['store_id'] = user.store_id
             session['shop'] = user.store_id
+            session['shop'] = user.store_id
             
             if user.role == 'owner':
                 return jsonify({'status': 'success', 'redirect': url_for('main.owner_dashboard')})
@@ -38,9 +39,8 @@ def login():
 
 @main_bp.route('/pos')
 def pos():
-    store_id = session.get('shop')
-    if not store_id:
-        return redirect(url_for('main.owner_dashboard'))
+    store_id = session.get('shop') or session.get('store_id') or 'shop1'
+    session['shop'] = store_id
     products = Product.query.filter_by(store_id=store_id).all()
     cart = session.get('cart', [])
     total = sum(item['subtotal'] for item in cart)

@@ -27,9 +27,9 @@
             </div>
         </div>
 
-        <!-- Current Sale Column -->
+        <!-- Current Sale & Daily Sales Column -->
         <div class="col-md-4">
-            <div class="card">
+            <div class="card mb-4">
                 <div class="card-body">
                     <h4 class="card-title">Current Sale</h4>
                     <p class="fs-5">Total: CFA {{ total }}</p>
@@ -44,6 +44,28 @@
                     <form action="{{ url_for('main.complete_sale') }}" method="POST">
                         <button type="submit" class="btn btn-primary w-100">Complete Sale</button>
                     </form>
+                </div>
+            </div>
+
+            <!-- Today's Sold Items Section -->
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Sold Today</h4>
+                    {% if today_sales %}
+                    <ul class="list-group mt-3" style="max-height: 250px; overflow-y: auto;">
+                        {% for sale in today_sales %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold">{{ sale.product_name }}</span>
+                                <span>x{{ sale.quantity }}</span>
+                            </div>
+                            <small class="text-muted">CFA {{ sale.total_price }} — {{ sale.timestamp.strftime('%H:%M') }}</small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted mt-2 mb-0">No sales recorded yet today.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>

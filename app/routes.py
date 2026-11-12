@@ -32,6 +32,7 @@ def login():
             session['store_id'] = user.store_id
             session['shop'] = user.store_id
             session['shop'] = user.store_id
+            session['shop'] = user.store_id
             
             if user.role == 'owner':
                 return jsonify({'status': 'success', 'redirect': url_for('main.owner_dashboard')})

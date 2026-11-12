@@ -39,7 +39,7 @@ def login():
 def pos():
     store_id = session.get('shop')
     if not store_id:
-        return redirect(url_for('main.index'))
+        return redirect(url_for('main.login'))
     products = Product.query.filter_by(store_id=store_id).all()
     cart = session.get('cart', [])
     total = sum(item['subtotal'] for item in cart)

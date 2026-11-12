@@ -37,13 +37,16 @@ def login():
 
 @main_bp.route('/pos')
 def pos():
-    if 'user_id' not in session or session.get('role') != 'worker':
-        return redirect(url_for('main.login'))
-    store_id = session.get('store_id', 'shop1')
+    store_id = session.get('shop')
+    if not store_id:
+        return redirect(url_for('main.shop_select'))
     products = Product.query.filter_by(store_id=store_id).all()
-    return render_template('pos.html', products=products, store_id=store_id)
-
-@main_bp.route('/owner', methods=['GET', 'POST'])
+    cart = session.get('cart', [])
+    total = sum(item['subtotal'] for item in cart)
+    from datetime import datetime
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_sales = Sale.query.filter(Sale.store_id == store_id, Sale.timestamp >= today_start).order_by(Sale.timestamp.desc()).all()
+    return render_template('pos.html', products=products, cart=cart, total=total, store_id=store_id, today_sales=today_sales)
 def owner_dashboard():
     if 'user_id' not in session or session.get('role') != 'owner':
         return redirect(url_for('main.login'))

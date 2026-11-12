@@ -15,7 +15,7 @@
                     <div class="card h-100">
                         <div class="card-body">
                             <h5 class="card-title">{{ p.name }}</h5>
-                            <p class="card-text text-muted mb-1">Price: CFA {{ p.selling_price }}</p>
+                            <p class="card-text text-muted mb-1">Price: CFA {{ p.price }}</p>
                             <p class="card-text text-muted mb-2">Stock: {{ p.stock }}</p>
                             <form action="{{ url_for('main.add_to_cart', product_id=p.id) }}" method="POST">
                                 <button type="submit" class="btn btn-success btn-sm w-100">Add to Sale</button>

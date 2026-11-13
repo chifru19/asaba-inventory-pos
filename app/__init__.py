@@ -84,6 +84,7 @@ def create_app():
     app.register_blueprint(main_bp)
 
     
+    
     @app.route('/api/allocate_stock', methods=['POST'])
     def allocate_stock():
         if session.get('role') != 'owner':
@@ -92,7 +93,26 @@ def create_app():
         product_id = data.get('product_id')
         shop = data.get('shop') # 'shop1', 'shop2', 'shop3'
         qty = int(data.get('qty', 0))
-        return jsonify({"success": True, "message": f"Successfully allocated {qty} to {shop}"})
+        
+        product = Product.query.get(product_id)
+        if not product:
+            return jsonify({"error": "Product not found"}}, 404
+            
+        main_stk = getattr(product, 'main_stock', product.stock)
+        if main_stk < qty:
+            return jsonify({"error": "Insufficient main stock for transfer"}), 400
+            
+        # Deduct from main stock and add to target shop
+        product.main_stock = main_stk - qty
+        if shop == 'shop1':
+            product.shop1_stock = getattr(product, 'shop1_stock', 0) + qty
+        elif shop == 'shop2':
+            product.shop2_stock = getattr(product, 'shop2_stock', 0) + qty
+        elif shop == 'shop3':
+            product.shop3_stock = getattr(product, 'shop3_stock', 0) + qty
+            
+        db.session.commit()
+        return jsonify({"success": True, "message": f"Successfully transferred {qty} units to {shop}!"})
 
     return app
 

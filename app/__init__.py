@@ -103,8 +103,6 @@ def create_app():
         db.session.commit()
         return jsonify({"success": True, "message": f"Successfully transferred {qty} units to {shop}!"})
 
-    
-
 @app.route('/api/allocate_stock', methods=['POST'])
 def allocate_stock():
     try:

@@ -106,7 +106,7 @@
 
 
 <div class="overflow-x-auto bg-white rounded-2xl shadow-xl border border-stone-200 p-6 mt-6">
-    <h3 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-4">Central Stock & Multi-Shop Allocation</h3>
+    <h3 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-4"></h3>
     <table class="w-full text-left border-collapse">
         <thead>
             <tr class="border-b border-stone-200 text-[10px] uppercase tracking-widest text-stone-500">
@@ -120,17 +120,19 @@
             </tr>
         </thead>
         <tbody class="divide-y divide-stone-100 text-sm">
+            {% for p in products %}
             <tr>
-                <td class="py-4 px-4 font-bold text-stone-800">Item A</td>
-                <td class="py-4 px-4 font-semibold text-stone-600">200</td>
-                <td class="py-4 px-4 font-semibold text-stone-600">1,500</td>
-                <td class="py-4 px-4 font-bold text-teal-900">100 / <span class="text-red-600">10 sold</span></td>
-                <td class="py-4 px-4 font-bold text-teal-900">50 / <span class="text-red-600">5 sold</span></td>
-                <td class="py-4 px-4 font-bold text-teal-900">50 / <span class="text-red-600">2 sold</span></td>
+                <td class="py-4 px-4 font-bold text-stone-800">{{ p.name.replace("(SHOP1)", "").replace("(SHOP2)", "").replace("(SHOP3)", "").strip() }}</td>
+                <td class="py-4 px-4 font-semibold text-stone-600">{{ p.main_stock | default(p.stock, true) }}</td>
+                <td class="py-4 px-4 font-semibold text-stone-600">{{ "{:,.0f}".format(p.price) }}</td>
+                <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop1_stock | default(p.stock, true) }} / <span class="text-red-600">{{ p.shop1_sold | default(0) }} sold</span></td>
+                <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop2_stock | default(0) }} / <span class="text-red-600">{{ p.shop2_sold | default(0) }} sold</span></td>
+                <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop3_stock | default(0) }} / <span class="text-red-600">{{ p.shop3_sold | default(0) }} sold</span></td>
                 <td class="py-4 px-4">
-                    <button onclick="openAllocateModal(1)" class="bg-teal-950 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-teal-900 transition">Share Stock</button>
+                    <button onclick="openAllocateModal({{ p.id }})" class="bg-teal-950 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-teal-900 transition">Share Stock</button>
                 </td>
             </tr>
+            {% endfor %}
         </tbody>
     </table>
 </div>

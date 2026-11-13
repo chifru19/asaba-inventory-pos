@@ -103,3 +103,34 @@
     </script>
 </body>
 </html>
+
+
+<div class="overflow-x-auto bg-white rounded-2xl shadow-xl border border-stone-200 p-6 mt-6">
+    <h3 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-4">Central Stock & Multi-Shop Allocation</h3>
+    <table class="w-full text-left border-collapse">
+        <thead>
+            <tr class="border-b border-stone-200 text-[10px] uppercase tracking-widest text-stone-500">
+                <th class="py-3 px-4">Item Name</th>
+                <th class="py-3 px-4">Main Stock</th>
+                <th class="py-3 px-4">Price (XAF)</th>
+                <th class="py-3 px-4 text-teal-700">Shop 1 (Stock / Sold)</th>
+                <th class="py-3 px-4 text-teal-700">Shop 2 (Stock / Sold)</th>
+                <th class="py-3 px-4 text-teal-700">Shop 3 (Stock / Sold)</th>
+                <th class="py-3 px-4">Action</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-stone-100 text-sm">
+            <tr>
+                <td class="py-4 px-4 font-bold text-stone-800">Item A</td>
+                <td class="py-4 px-4 font-semibold text-stone-600">200</td>
+                <td class="py-4 px-4 font-semibold text-stone-600">1,500</td>
+                <td class="py-4 px-4 font-bold text-teal-900">100 / <span class="text-red-600">10 sold</span></td>
+                <td class="py-4 px-4 font-bold text-teal-900">50 / <span class="text-red-600">5 sold</span></td>
+                <td class="py-4 px-4 font-bold text-teal-900">50 / <span class="text-red-600">2 sold</span></td>
+                <td class="py-4 px-4">
+                    <button onclick="openAllocateModal(1)" class="bg-teal-950 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-teal-900 transition">Share Stock</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>

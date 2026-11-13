@@ -83,17 +83,16 @@ def create_app():
     from app.routes import main_bp
     app.register_blueprint(main_bp)
 
+    
+    @app.route('/api/allocate_stock', methods=['POST'])
+    def allocate_stock():
+        if session.get('role') != 'owner':
+            return jsonify({"error": "Unauthorized"}), 401
+        data = request.json
+        product_id = data.get('product_id')
+        shop = data.get('shop') # 'shop1', 'shop2', 'shop3'
+        qty = int(data.get('qty', 0))
+        return jsonify({"success": True, "message": f"Successfully allocated {qty} to {shop}"})
+
     return app
 
-
-@app.route('/api/allocate_stock', methods=['POST'])
-def allocate_stock():
-    if session.get('role') != 'owner':
-        return jsonify({"error": "Unauthorized"}), 401
-    data = request.json
-    product_id = data.get('product_id')
-    shop = data.get('shop') # 'shop1', 'shop2', 'shop3'
-    qty = int(data.get('qty', 0))
-    
-    # Update allocation logic here
-    return jsonify({"success": True, "message": f"Successfully allocated {qty} to {shop}"})

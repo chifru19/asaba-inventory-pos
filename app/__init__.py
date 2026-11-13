@@ -17,7 +17,20 @@ def create_app():
     from app.models import Product, User, Sale
 
     with app.app_context():
+        
+    with app.app_context():
         db.create_all()
+        from werkzeug.security import generate_password_hash
+        # Create default owner if not exists
+        if not User.query.filter_by(username='owner').first():
+            owner = User(username='owner', password=generate_password_hash('owner123'), role='owner')
+            db.session.add(owner)
+        # Create default worker if not exists
+        if not User.query.filter_by(username='worker_shop1').first():
+            worker = User(username='worker_shop1', password=generate_password_hash('worker123'), role='worker')
+            db.session.add(worker)
+        db.session.commit()
+
 
     
     @app.route('/health')

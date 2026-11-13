@@ -156,9 +156,8 @@ def create_app():
             db.session.commit()
             return jsonify({"success": True, "message": "Sale completed and recorded successfully!"})
             
-        # GET today's sales
-        today_start = datetime.combine(date.today(), datetime.min.time())
-        sales = Sale.query.filter(Sale.timestamp >= today_start).order_by(Sale.timestamp.desc()).all()
+        # GET recent sales (latest 20 sales)
+        sales = Sale.query.order_by(Sale.id.desc()).limit(20).all()
         
         sales_list = []
         for s in sales:

@@ -3,6 +3,7 @@ from app.extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(db.Model):
+    password = db.Column(db.String(255))
     main_stock = db.Column(db.Integer, default=0)
     shop1_stock = db.Column(db.Integer, default=0)
     shop2_stock = db.Column(db.Integer, default=0)

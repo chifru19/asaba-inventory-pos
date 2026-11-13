@@ -1,0 +1,160 @@
+import os
+
+pos_html = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asaba Ngu POS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-stone-100 min-h-screen font-sans">
+    <div class="max-w-7xl mx-auto p-4 md:p-8">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-stone-200">
+            <h1 class="text-xl font-black text-stone-800 tracking-tight">Asaba Ngu POS</h1>
+            <div class="flex space-x-6 text-xs font-bold uppercase tracking-widest text-stone-600 mt-3 md:mt-0">
+                <a href="/owner_dashboard" class="hover:text-teal-950 transition">Dashboard</a>
+                <a href="/inventory" class="hover:text-teal-950 transition">Inventory</a>
+                <a href="/pos" class="text-teal-950 underline">Checkout (POS)</a>
+            </div>
+        </div>
+
+        <!-- Layout Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left 2 Columns: Products & Search -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-stone-200">
+                    <input type="text" id="searchInput" placeholder="Search items..." onkeyup="filterProducts()" class="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:border-teal-900 text-sm bg-stone-50">
+                </div>
+
+                <!-- Product Cards Grid -->
+                <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {% for p in products %}
+                    <div class="product-card bg-white p-5 rounded-2xl shadow-sm border border-stone-200 flex flex-col justify-between" data-name="{{ p.name | lower }}">
+                        <div>
+                            <h3 class="font-black text-stone-800 text-base mb-1">{{ p.name }}</h3>
+                            <p class="text-xs text-stone-500 mb-1">Price: CFA {{ "{:,.1f}".format(p.price) }}</p>
+                            <p class="text-xs font-bold text-teal-700 mb-4">Stock: {{ p.shop1_stock | default(p.stock, true) }}</p>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <!-- Plus & Minus Quantity Controls -->
+                            <div class="flex items-center justify-between bg-stone-50 px-3 py-2 rounded-xl border border-stone-200">
+                                <span class="text-xs font-bold text-stone-600">Qty:</span>
+                                <div class="flex items-center space-x-2">
+                                    <button type="button" onclick="adjustCardQty({{ p.id }}, -1)" class="w-8 h-8 bg-red-100 text-red-700 font-black rounded-lg flex items-center justify-center hover:bg-red-200 transition text-sm">-</button>
+                                    <input type="number" id="qty-{{ p.id }}" value="1" min="1" class="w-12 text-center font-bold text-stone-800 bg-white border border-stone-300 rounded-lg py-1 text-xs">
+                                    <button type="button" onclick="adjustCardQty({{ p.id }}, 1)" class="w-8 h-8 bg-teal-100 text-teal-900 font-black rounded-lg flex items-center justify-center hover:bg-teal-200 transition text-sm">+</button>
+                                </div>
+                            </div>
+                            <button onclick="addToCart({{ p.id }}, '{{ p.name | replace("'", "\\'") }}', {{ p.price }})" class="w-full bg-teal-800 text-white py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-teal-900 transition shadow-md">
+                                Add to Sale
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Right Column: Sales Summary & Cart -->
+            <div class="space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 sticky top-6">
+                    <h3 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-2">Current Sale</h3>
+                    <div id="cartItems" class="space-y-2 mb-4 max-h-60 overflow-y-auto text-xs text-stone-700">
+                        <p class="text-stone-400 italic">No items added yet.</p>
+                    </div>
+                    <p class="text-sm font-semibold text-stone-600 mb-6">Total: CFA <span id="cartTotal">0</span></p>
+                    <button onclick="completeSale()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 transition shadow-md mb-6">
+                        Complete Sale
+                    </button>
+                    <hr class="border-stone-100 my-6">
+                    <h4 class="text-sm font-black text-stone-800 uppercase tracking-wider mb-3">Sold Today</h4>
+                    <p class="text-xs text-stone-400 italic">No sales recorded yet today.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    let cart = [];
+
+    function adjustCardQty(itemId, change) {
+        const input = document.getElementById('qty-' + itemId);
+        let val = parseInt(input.value) || 1;
+        val += change;
+        if (val < 1) val = 1;
+        input.value = val;
+    }
+
+    function addToCart(id, name, price) {
+        const qtyInput = document.getElementById('qty-' + id);
+        const qty = parseInt(qtyInput.value) || 1;
+        
+        const existing = cart.find(item => item.id === id);
+        if (existing) {
+            existing.qty += qty;
+        } else {
+            cart.push({ id, name, price, qty });
+        }
+        updateCartDisplay();
+        qtyInput.value = 1;
+    }
+
+    function updateCartDisplay() {
+        const container = document.getElementById('cartItems');
+        const totalEl = document.getElementById('cartTotal');
+        if (cart.length === 0) {
+            container.innerHTML = '<p class="text-stone-400 italic">No items added yet.</p>';
+            totalEl.innerText = '0';
+            return;
+        }
+
+        let html = '';
+        let total = 0;
+        cart.forEach(item => {
+            let itemTotal = item.price * item.qty;
+            total += itemTotal;
+            html += `<div class="flex justify-between items-center bg-stone-50 p-2 rounded-lg border border-stone-200">
+                <div>
+                    <span class="font-bold text-stone-800">${item.name}</span>
+                    <p class="text-[10px] text-stone-500">${item.qty} x CFA ${item.price}</p>
+                </div>
+                <span class="font-bold text-teal-900">CFA ${itemTotal}</span>
+            </div>`;
+        });
+        container.innerHTML = html;
+        totalEl.innerText = total.toLocaleString();
+    }
+
+    function completeSale() {
+        if (cart.length === 0) {
+            alert("Cart is empty!");
+            return;
+        }
+        alert("Sale completed successfully!");
+        cart = [];
+        updateCartDisplay();
+    }
+
+    function filterProducts() {
+        let query = document.getElementById('searchInput').value.toLowerCase();
+        let cards = document.getElementsByClassName('product-card');
+        for (let card of cards) {
+            let name = card.getAttribute('data-name');
+            if (name.includes(query)) {
+                card.style.display = "";
+            } else {
+                card.style.display = "none";
+            }
+        }
+    }
+    </script>
+</body>
+</html>
+'''
+
+with open("app/templates/pos.html", "w") as f:
+    f.write(pos_html)
+
+print("Successfully cleaned up pos.html syntax!")

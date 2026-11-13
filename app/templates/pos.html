@@ -29,7 +29,11 @@
                 <!-- Product Cards Grid -->
                 <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {% for p in products %}
-                    <div class="product-card bg-white p-5 rounded-2xl shadow-sm border border-stone-200 flex flex-col justify-between" data-name="{{ p.name | lower }}">
+                    <div class="product-card bg-white p-5 rounded-2xl shadow-sm border border-stone-200 flex flex-col justify-between" 
+                         data-id="{{ p.id }}" 
+                         data-name="{{ p.name }}" 
+                         data-price="{{ p.price }}"
+                         data-search="{{ p.name | lower }}">
                         <div>
                             <h3 class="font-black text-stone-800 text-base mb-1">{{ p.name }}</h3>
                             <p class="text-xs text-stone-500 mb-1">Price: CFA {{ "{:,.1f}".format(p.price) }}</p>
@@ -41,12 +45,12 @@
                             <div class="flex items-center justify-between bg-stone-50 px-3 py-2 rounded-xl border border-stone-200">
                                 <span class="text-xs font-bold text-stone-600">Qty:</span>
                                 <div class="flex items-center space-x-2">
-                                    <button type="button" onclick="adjustCardQty('{{ p.id }}', -1)" class="w-8 h-8 bg-red-100 text-red-700 font-black rounded-lg flex items-center justify-center hover:bg-red-200 transition text-sm">-</button>
-                                    <input type="number" id="qty-{{ p.id }}" value="1" min="1" class="w-12 text-center font-bold text-stone-800 bg-white border border-stone-300 rounded-lg py-1 text-xs">
-                                    <button type="button" onclick="adjustCardQty('{{ p.id }}', 1)" class="w-8 h-8 bg-teal-100 text-teal-900 font-black rounded-lg flex items-center justify-center hover:bg-teal-200 transition text-sm">+</button>
+                                    <button type="button" onclick="adjustQty(this, -1)" class="w-8 h-8 bg-red-100 text-red-700 font-black rounded-lg flex items-center justify-center hover:bg-red-200 transition text-sm">-</button>
+                                    <input type="number" class="qty-input w-12 text-center font-bold text-stone-800 bg-white border border-stone-300 rounded-lg py-1 text-xs" value="1" min="1">
+                                    <button type="button" onclick="adjustQty(this, 1)" class="w-8 h-8 bg-teal-100 text-teal-900 font-black rounded-lg flex items-center justify-center hover:bg-teal-200 transition text-sm">+</button>
                                 </div>
                             </div>
-                            <button onclick="addToCart('{{ p.id }}', '{{ p.name }}', {{ p.price }})" class="w-full bg-teal-800 text-white py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-teal-900 transition shadow-md">
+                            <button onclick="addToCart(this)" class="w-full bg-teal-800 text-white py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-teal-900 transition shadow-md">
                                 Add to Sale
                             </button>
                         </div>
@@ -77,16 +81,21 @@
     <script>
     let cart = [];
 
-    function adjustCardQty(itemId, change) {
-        const input = document.getElementById('qty-' + itemId);
+    function adjustQty(btn, change) {
+        const card = btn.closest('.product-card');
+        const input = card.querySelector('.qty-input');
         let val = parseInt(input.value) || 1;
         val += change;
         if (val < 1) val = 1;
         input.value = val;
     }
 
-    function addToCart(id, name, price) {
-        const qtyInput = document.getElementById('qty-' + id);
+    function addToCart(btn) {
+        const card = btn.closest('.product-card');
+        const id = card.getAttribute('data-id');
+        const name = card.getAttribute('data-name');
+        const price = parseFloat(card.getAttribute('data-price'));
+        const qtyInput = card.querySelector('.qty-input');
         const qty = parseInt(qtyInput.value) || 1;
         
         const existing = cart.find(item => item.id === id);
@@ -139,8 +148,8 @@
         let query = document.getElementById('searchInput').value.toLowerCase();
         let cards = document.getElementsByClassName('product-card');
         for (let card of cards) {
-            let name = card.getAttribute('data-name');
-            if (name.includes(query)) {
+            let searchName = card.getAttribute('data-search');
+            if (searchName.includes(query)) {
                 card.style.display = "";
             } else {
                 card.style.display = "none";

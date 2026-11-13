@@ -1,135 +1,116 @@
-from flask import Flask
-from app.extensions import db
-from app.models import User, Product
+import os
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+
+db = SQLAlchemy()
 
 def create_app():
     app = Flask(__name__)
-    app.config['SECRET_KEY'] = 'asaba-pos-secret-key'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///pos.db'
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'asaba_super_secret_key_2026')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///pos.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(app)
 
+    from app.models import Product, User, Sale
+
     with app.app_context():
         db.create_all()
+
+    @app.route('/')
+    def index():
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        if session.get('role') == 'owner':
+            return redirect(url_for('owner_dashboard'))
+        return redirect(url_for('pos'))
+
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        if request.method == 'POST':
+            data = request.form if request.form else request.json
+            username = data.get('username')
+            password = data.get('password')
+            user = User.query.filter_by(username=username).first()
+            if user and check_password_hash(user.password, password):
+                session['user_id'] = user.id
+                session['username'] = user.username
+                session['role'] = user.role
+                if request.is_json or request.headers.get('Content-Type') == 'application/json':
+                    return jsonify({"success": True, "redirect": url_for('owner_dashboard' if user.role == 'owner' else 'pos')})
+                return redirect(url_for('owner_dashboard' if user.role == 'owner' else 'pos'))
+            return jsonify({"error": "Invalid username or password"}), 401
+        return render_template('login.html')
+
+    @app.route('/logout')
+    def logout():
+        session.clear()
+        return redirect(url_for('login'))
+
+    @app.route('/owner')
+    def owner_dashboard():
+        if session.get('role') != 'owner':
+            return redirect(url_for('login'))
+        products = Product.query.all()
+        return render_template('owner_dashboard.html', products=products)
+
+    @app.route('/pos')
+    def pos():
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        products = Product.query.all()
+        return render_template('pos.html', products=products)
+
+    @app.route('/api/products', methods=['GET', 'POST'])
+    def manage_products():
+        if session.get('role') != 'owner':
+            return jsonify({"error": "Unauthorized"}), 401
         
-        # Create default owner if not exists
-        if not User.query.filter_by(username='admin').first():
-            admin = User(username='admin', role='owner', store_id='global')
-            admin.set_password('admin123')
-            db.session.add(admin)
-
-        # Full inventory list extracted from documentation (Prices in CFA)
-        inventory_items = [
-            {'name': 'BL-Deo Mn Fresh&Exdry', 'price': 1000.0, 'stock': 15},
-            {'name': 'Bl-deo Mn Inv& Sens', 'price': 1000.0, 'stock': 12},
-            {'name': 'BL-SPRAY 4 Wm 48H', 'price': 1000.0, 'stock': 15},
-            {'name': 'SPRAYS men F&EF', 'price': 1000.0, 'stock': 10},
-            {'name': 'BL-spray Wm', 'price': 1000.0, 'stock': 10},
-            {'name': 'BL-spray Mn', 'price': 1000.0, 'stock': 10},
-            {'name': 'DEO ROLLON mn', 'price': 800.0, 'stock': 72},
-            {'name': 'DEO ROLLON WN', 'price': 800.0, 'stock': 120},
-            {'name': 'BL-Bodylotion', 'price': 1500.0, 'stock': 168},
-            {'name': 'BL-Bodymilk', 'price': 1500.0, 'stock': 165},
-            {'name': 'BL Body coscos', 'price': 2000.0, 'stock': 10},
-            {'name': 'BL/vital', 'price': 2500.0, 'stock': 10},
-            {'name': 'BL/urea/Q10', 'price': 2500.0, 'stock': 70},
-            {'name': 'BL-Bcream-Sheabut', 'price': 2500.0, 'stock': 204},
-            {'name': 'Bl-Bcream-vanille/SheaB', 'price': 2500.0, 'stock': 96},
-            {'name': 'BL-Dgel H&M 750ml', 'price': 2000.0, 'stock': 306},
-            {'name': 'BL men Dusgel 300ml', 'price': 1000.0, 'stock': 86},
-            {'name': 'BL Savon H&M', 'price': 1000.0, 'stock': 36},
-            {'name': 'BL-Tpaste Dontodent', 'price': 700.0, 'stock': 28},
-            {'name': 'Rossmann facelle clasic', 'price': 1000.0, 'stock': 390},
-            {'name': 'Cien Spray 4Men', 'price': 1000.0, 'stock': 73},
-            {'name': 'LD-Dentalux-Complex 3', 'price': 800.0, 'stock': 175},
-            {'name': 'Cien Dgel 300ml 3x colour', 'price': 1000.0, 'stock': 20},
-            {'name': 'Cein Schauma Shampo', 'price': 1300.0, 'stock': 9},
-            {'name': 'Doussy 3L', 'price': 2500.0, 'stock': 56},
-            {'name': 'Kuschelweich 1L', 'price': 2000.0, 'stock': 62},
-            {'name': 'W5 Glas reinigen', 'price': 1000.0, 'stock': 50},
-            {'name': 'W5 Dischwasser', 'price': 1000.0, 'stock': 30},
-            {'name': 'Hot chocolate', 'price': 5000.0, 'stock': 20},
-            {'name': 'Chocolate', 'price': 3000.0, 'stock': 25},
-            {'name': 'Dash powder-100', 'price': 15000.0, 'stock': 300},
-            {'name': 'Cornflakes 500g', 'price': 2500.0, 'stock': 120},
-            {'name': 'LACUNA Blotion', 'price': 2000.0, 'stock': 300},
-            {'name': 'Biocura Spray M', 'price': 1500.0, 'stock': 600},
-            {'name': 'Tbrush aldi', 'price': 1000.0, 'stock': 1200}
-        ]
-
-        # Populate workers and inventory for Shop 1, Shop 2, and Shop 3
-        shops = ['shop1', 'shop2', 'shop3']
-        for shop in shops:
-            worker_username = f'worker_{shop}'
-            if not User.query.filter_by(username=worker_username).first():
-                worker = User(username=worker_username, role='worker', store_id=shop)
-                worker.set_password('password123')
-                db.session.add(worker)
+        if request.method == 'POST':
+            data = request.json or request.form
+            name = data.get('name')
+            price = float(data.get('price', 0))
+            stock = int(data.get('stock', 0))
             
-            # Populate products if none exist for this shop
-            if not Product.query.filter_by(store_id=shop).first():
-                for item in inventory_items:
-                    p = Product(
-                        name=f"{item['name']} ({shop.upper()})", 
-                        price=item['price'], 
-                        stock=item['stock'], 
-                        store_id=shop
-                    )
-                    db.session.add(p)
+            product = Product(name=name, price=price, stock=stock, main_stock=stock)
+            db.session.add(product)
+            db.session.commit()
+            return jsonify({"success": True, "message": "Product created successfully!"})
+            
+        products = Product.query.all()
+        return jsonify([{"id": p.id, "name": p.name, "price": p.price, "stock": p.stock, "main_stock": getattr(p, 'main_stock', p.stock)} for p in products])
 
-        db.session.commit()
-
-    from app.routes import main_bp
-    app.register_blueprint(main_bp)
-
+    @app.route('/api/allocate_stock', methods=['POST'])
+    def allocate_stock():
+        try:
+            data = request.json or {}
+            product_id = int(data.get('product_id', 0))
+            shop = data.get('shop', 'shop1')
+            qty = int(data.get('qty', 0))
+            
             product = Product.query.get(product_id)
-        if not product:
-            return jsonify({"error": "Product not found"}), 404
+            if not product:
+                return jsonify({"error": "Product not found"}), 404
+                
+            main_stk = getattr(product, 'main_stock', getattr(product, 'stock', 0))
+            if main_stk < qty:
+                return jsonify({"error": f"Insufficient main stock ({main_stk} available)"}), 400
+                
+            if hasattr(product, 'main_stock'):
+                product.main_stock = main_stk - qty
+            elif hasattr(product, 'stock'):
+                product.stock = main_stk - qty
+                
+            shop_attr = f"{shop}_stock"
+            current_shop_stk = getattr(product, shop_attr, 0) or 0
+            setattr(product, shop_attr, current_shop_stk + qty)
             
-        main_stk = getattr(product, 'main_stock', product.stock)
-        if main_stk < qty:
-            return jsonify({"error": "Insufficient main stock for transfer"}), 400
-            
-        # Deduct from main stock and add to target shop
-        product.main_stock = main_stk - qty
-        if shop == 'shop1':
-            product.shop1_stock = getattr(product, 'shop1_stock', 0) + qty
-        elif shop == 'shop2':
-            product.shop2_stock = getattr(product, 'shop2_stock', 0) + qty
-        elif shop == 'shop3':
-            product.shop3_stock = getattr(product, 'shop3_stock', 0) + qty
-            
-        db.session.commit()
-        return jsonify({"success": True, "message": f"Successfully transferred {qty} units to {shop}!"})
+            db.session.commit()
+            return jsonify({"success": True, "message": f"Successfully transferred {qty} units to {shop.upper()}!"})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
 
-@app.route('/api/allocate_stock', methods=['POST'])
-def allocate_stock():
-    try:
-        data = request.json or {}
-        product_id = int(data.get('product_id', 0))
-        shop = data.get('shop', 'shop1')
-        qty = int(data.get('qty', 0))
-        
-        product = Product.query.get(product_id)
-        if not product:
-            return jsonify({"error": "Product not found"}), 404
-            
-        main_stk = getattr(product, 'main_stock', getattr(product, 'stock', 0))
-        if main_stk < qty:
-            return jsonify({"error": f"Insufficient main stock ({main_stk} available)"}), 400
-            
-        if hasattr(product, 'main_stock'):
-            product.main_stock = main_stk - qty
-        elif hasattr(product, 'stock'):
-            product.stock = main_stk - qty
-            
-        shop_attr = f"{shop}_stock"
-        current_shop_stk = getattr(product, shop_attr, 0) or 0
-        setattr(product, shop_attr, current_shop_stk + qty)
-        
-        db.session.commit()
-        return jsonify({"success": True, "message": f"Successfully transferred {qty} units to {shop.upper()}!"})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+    return app

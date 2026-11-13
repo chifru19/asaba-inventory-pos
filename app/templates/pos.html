@@ -1,89 +1,60 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <!-- Products Column -->
-        <div class="col-md-8">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="mb-0">Products</h4>
-                <input type="text" id="productSearch" class="form-control w-50" placeholder="Search items..." onkeyup="filterProducts()">
-            </div>
-            
-            <div class="row" id="productContainer">
-                {% for p in products %}
-                <div class="col-md-4 mb-3 product-card-wrapper" data-name="{{ p.name | lower }}">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ p.name }}</h5>
-                            <p class="card-text text-muted mb-1">Price: CFA {{ p.price }}</p>
-                            <p class="card-text text-muted mb-2">Stock: {{ p.stock }}</p>
-                            <form action="{{ url_for('main.add_to_cart', product_id=p.id) }}" method="POST">
-                                <button type="submit" class="btn btn-success btn-sm w-100">Add to Sale</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asaba Ngu POS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-stone-100 min-h-screen font-sans">
+    <div class="max-w-7xl mx-auto p-4 md:p-8">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-stone-200">
+            <h1 class="text-xl font-black text-stone-800 tracking-tight">Asaba Ngu POS</h1>
+            <div class="flex space-x-6 text-xs font-bold uppercase tracking-widest text-stone-600 mt-3 md:mt-0">
+                <a href="/owner_dashboard" class="hover:text-teal-950 transition">Dashboard</a>
+                <a href="/inventory" class="hover:text-teal-950 transition">Inventory</a>
+                <a href="/pos" class="text-teal-950 underline">Checkout (POS)</a>
             </div>
         </div>
 
-        <!-- Current Sale & Daily Sales Column -->
-        <div class="col-md-4">
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h4 class="card-title">Current Sale</h4>
-                    <p class="fs-5">Total: CFA {{ total }}</p>
-                    <ul class="list-group mb-3">
-                        {% for item in cart %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            {{ item.name }} (x{{ item.quantity }})
-                            <span>CFA {{ item.subtotal }}</span>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    <form action="{{ url_for('main.complete_sale') }}" method="POST">
-                        <button type="submit" class="btn btn-primary w-100">Complete Sale</button>
-                    </form>
+        <!-- Layout Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left 2 Columns: Products & Search -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-stone-200">
+                    <input type="text" id="searchInput" placeholder="Search items..." class="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:border-teal-900 text-sm bg-stone-50">
+                </div>
+
+                <!-- Product Cards Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-stone-200 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-black text-stone-800 text-base mb-1">BL-Deo Mn Fresh&Exdry (SHOP1)</h3>
+                            <p class="text-xs text-stone-500 mb-1">Price: CFA 1,000.0</p>
+                            <p class="text-xs font-bold text-teal-700 mb-4">Stock: 15</p>
+                        </div>
+                        <button class="w-full bg-teal-800 text-white py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-teal-900 transition shadow-md">
+                            Add to Sale
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Today's Sold Items Section -->
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="card-title">Sold Today</h4>
-                    {% if today_sales %}
-                    <ul class="list-group mt-3" style="max-height: 250px; overflow-y: auto;">
-                        {% for sale in today_sales %}
-                        <li class="list-group-item">
-                            <div class="d-flex justify-content-between">
-                                <span class="fw-bold">Sale #{{ sale.id }}</span>
-                                <span>CFA {{ sale.total_amount }}</span>
-                            </div>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <p class="text-muted mt-2 mb-0">No sales recorded yet today.</p>
-                    {% endif %}
+            <!-- Right Column: Sales Summary -->
+            <div class="space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 sticky top-6">
+                    <h3 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-2">Current Sale</h3>
+                    <p class="text-sm font-semibold text-stone-600 mb-6">Total: CFA <span id="cartTotal">0</span></p>
+                    <button class="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 transition shadow-md mb-6">
+                        Complete Sale
+                    </button>
+                    <hr class="border-stone-100 my-6">
+                    <h4 class="text-sm font-black text-stone-800 uppercase tracking-wider mb-3">Sold Today</h4>
+                    <p class="text-xs text-stone-400 italic">No sales recorded yet today.</p>
                 </div>
             </div>
         </div>
     </div>
-</div>
-
-<script>
-function filterProducts() {
-    let input = document.getElementById('productSearch').value.toLowerCase();
-    let cards = document.getElementsByClassName('product-card-wrapper');
-    
-    for (let i = 0; i < cards.length; i++) {
-        let name = cards[i].getAttribute('data-name');
-        if (name.includes(input)) {
-            cards[i].style.display = "";
-        } else {
-            cards[i].style.display = "none";
-        }
-    }
-}
-</script>
-{% endblock %}
+</body>
+</html>

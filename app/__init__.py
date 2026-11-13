@@ -66,7 +66,10 @@ def create_app():
         if 'user_id' not in session:
             return redirect(url_for('login'))
         products = Product.query.all()
-        return render_template('pos.html', products=products)
+        from datetime import datetime, date
+        today_start = datetime.combine(date.today(), datetime.min.time())
+        sales = Sale.query.filter(Sale.timestamp >= today_start).order_by(Sale.timestamp.desc()).all()
+        return render_template('pos.html', products=products, sales=sales)
 
     @app.route('/api/products', methods=['GET', 'POST'])
     def manage_products():
@@ -117,5 +120,55 @@ def create_app():
         except Exception as e:
             db.session.rollback()
             return jsonify({"error": str(e)}), 500
+
+    
+    @app.route('/api/sales', methods=['GET', 'POST'])
+    def handle_sales():
+        from datetime import datetime, date
+        if 'user_id' not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+            
+        if request.method == 'POST':
+            data = request.json or {}
+            items = data.get('items', [])
+            total = float(data.get('total', 0))
+            shop = data.get('shop', 'shop1')
+            
+            import json
+            sale = Sale(
+                user_id=session.get('user_id'),
+                shop=shop,
+                items_json=json.dumps(items),
+                total=total
+            )
+            
+            # Deduct stock
+            for item in items:
+                p_id = item.get('id')
+                qty = item.get('qty', 1)
+                product = Product.query.get(p_id)
+                if product:
+                    shop_attr = f"{shop}_stock"
+                    current_stk = getattr(product, shop_attr, getattr(product, 'stock', 0))
+                    setattr(product, shop_attr, max(0, current_stk - qty))
+            
+            db.session.add(sale)
+            db.session.commit()
+            return jsonify({"success": True, "message": "Sale completed and recorded successfully!"})
+            
+        # GET today's sales
+        today_start = datetime.combine(date.today(), datetime.min.time())
+        sales = Sale.query.filter(Sale.timestamp >= today_start).order_by(Sale.timestamp.desc()).all()
+        
+        sales_list = []
+        for s in sales:
+            sales_list.append({
+                "id": s.id,
+                "total": s.total,
+                "shop": s.shop,
+                "timestamp": s.timestamp.strftime("%H:%M:%S") if s.timestamp else "",
+                "items": json.loads(s.items_json) if s.items_json else []
+            })
+        return jsonify(sales_list)
 
     return app

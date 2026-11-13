@@ -2,197 +2,114 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Owner Dashboard - Asaba POS</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-light">
-    <nav class="navbar navbar-dark bg-dark px-4">
-        <span class="navbar-brand">Owner Dashboard (Multi-Store Admin)</span>
-        <a href="/logout" class="btn btn-outline-light btn-sm">Logout</a>
-    </nav>
-    
-<!-- Direct Stock Transfer Control Panel for Asaba -->
-<div class="bg-white rounded-2xl shadow-xl border border-stone-200 p-6 mb-6">
-    <h3 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-2">📦 Central Stock Transfer to Shops</h3>
-    <p class="text-xs text-stone-500 mb-4">Select an item from main inventory and instantly distribute quantities to Shop 1, Shop 2, or Shop 3.</p>
-    
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-        <div>
-            <label class="block text-xs font-bold uppercase text-stone-600 mb-1">Select Product</label>
-            <select id="transferProductId" class="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-sm font-semibold text-stone-800">
-                {% for p in products %}
-                <option value="{{ p.id }}">{{ p.name.replace("(SHOP1)", "").replace("(SHOP2)", "").replace("(SHOP3)", "").strip() }} (Main: {{ p.main_stock | default(p.stock, true) }})</option>
-                {% endfor %}
-            </select>
+<body class="bg-stone-100 min-h-screen font-sans">
+    <div class="max-w-7xl mx-auto p-4 md:p-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-stone-200">
+            <h1 class="text-xl font-black text-stone-800 tracking-tight">Owner Dashboard (Multi-Store Admin)</h1>
+            <a href="/logout" class="bg-red-100 text-red-700 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-red-200 transition">Logout</a>
         </div>
-        <div>
-            <label class="block text-xs font-bold uppercase text-stone-600 mb-1">Destination Shop</label>
-            <select id="transferShop" class="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-sm font-semibold text-stone-800">
-                <option value="shop1">Shop 1</option>
-                <option value="shop2">Shop 2</option>
-                <option value="shop3">Shop 3</option>
-            </select>
+
+        <!-- Central Stock Transfer to Shops Widget -->
+        <div class="bg-white rounded-2xl shadow-xl border border-stone-200 p-6 mb-6">
+            <h3 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-2">📦 Central Stock Transfer to Shops</h3>
+            <p class="text-xs text-stone-500 mb-4">Select an item from main inventory and instantly distribute quantities to Shop 1, Shop 2, or Shop 3.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-stone-600 mb-1">Select Product</label>
+                    <select id="transferProductId" class="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-sm font-semibold text-stone-800">
+                        {% for p in products %}
+                        <option value="{{ p.id }}">{{ p.name.replace("(SHOP1)", "").replace("(SHOP2)", "").replace("(SHOP3)", "").strip() }} (Main: {{ p.main_stock | default(p.stock, true) }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-stone-600 mb-1">Destination Shop</label>
+                    <select id="transferShop" class="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-sm font-semibold text-stone-800">
+                        <option value="shop1">Shop 1</option>
+                        <option value="shop2">Shop 2</option>
+                        <option value="shop3">Shop 3</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-stone-600 mb-1">Quantity to Transfer</label>
+                    <input type="number" id="transferQty" min="1" value="10" class="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-sm font-semibold text-stone-800">
+                </div>
+                <div>
+                    <button onclick="executeStockTransfer()" class="w-full bg-teal-950 text-white py-3 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-teal-900 transition shadow-md">
+                        Transfer Stock ➔
+                    </button>
+                </div>
+            </div>
         </div>
-        <div>
-            <label class="block text-xs font-bold uppercase text-stone-600 mb-1">Quantity to Transfer</label>
-            <input type="number" id="transferQty" min="1" value="10" class="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-sm font-semibold text-stone-800">
-        </div>
-        <div>
-            <button onclick="executeStockTransfer()" class="w-full bg-teal-950 text-white py-3 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-teal-900 transition shadow-md">
-                Transfer Stock ➔
-            </button>
+
+        <!-- Central Stock & Multi-Shop Allocation Table -->
+        <div class="overflow-x-auto bg-white rounded-2xl shadow-xl border border-stone-200 p-6">
+            <h3 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-4">Central Stock & Multi-Shop Allocation</h3>
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-stone-200 text-[10px] uppercase tracking-widest text-stone-500">
+                        <th class="py-3 px-4">Item Name</th>
+                        <th class="py-3 px-4">Main Stock</th>
+                        <th class="py-3 px-4">Price (XAF)</th>
+                        <th class="py-3 px-4 text-teal-700">Shop 1 (Stock / Sold)</th>
+                        <th class="py-3 px-4 text-teal-700">Shop 2 (Stock / Sold)</th>
+                        <th class="py-3 px-4 text-teal-700">Shop 3 (Stock / Sold)</th>
+                        <th class="py-3 px-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-stone-100 text-sm">
+                    {% for p in products %}
+                    <tr>
+                        <td class="py-4 px-4 font-bold text-stone-800">{{ p.name.replace("(SHOP1)", "").replace("(SHOP2)", "").replace("(SHOP3)", "").strip() }}</td>
+                        <td class="py-4 px-4 font-semibold text-stone-600">{{ p.main_stock | default(p.stock, true) }}</td>
+                        <td class="py-4 px-4 font-semibold text-stone-600">{{ "{:,.0f}".format(p.price) }}</td>
+                        <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop1_stock | default(p.stock, true) }} / <span class="text-red-600">{{ p.shop1_sold | default(0) }} sold</span></td>
+                        <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop2_stock | default(0) }} / <span class="text-red-600">{{ p.shop2_sold | default(0) }} sold</span></td>
+                        <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop3_stock | default(0) }} / <span class="text-red-600">{{ p.shop3_sold | default(0) }} sold</span></td>
+                        <td class="py-4 px-4">
+                            <button onclick="executeStockTransferModal({{ p.id }})" class="bg-teal-950 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-teal-900 transition">Share Stock</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
-</div>
 
-<script>
-function executeStockTransfer() {
-    const productId = document.getElementById("transferProductId").value;
-    const shop = document.getElementById("transferShop").value;
-    const qty = parseInt(document.getElementById("transferQty").value);
-
-    fetch("/api/allocate_stock", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ product_id: productId, shop: shop, qty: qty })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            location.reload();
-        } else {
-            alert("Error: " + (data.error || "Transfer failed"));
-        }
-    })
-    .catch(err => alert("Connection error during transfer."));
-}
-</script>
-
-<div class="container mt-4">
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <label class="form-label fw-bold">Select Store to View:</label>
-                <select id="store-selector" class="form-select w-auto d-inline-block ms-2" onchange="switchStore(this.value)">
-                    <option value="shop1" {% if current_store == 'shop1' %}selected{% endif %}>Shop 1</option>
-                    <option value="shop2" {% if current_store == 'shop2' %}selected{% endif %}>Shop 2</option>
-                    <option value="shop3" {% if current_store == 'shop3' %}selected{% endif %}>Shop 3</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="row">
-            <!-- Inventory & Add Product Form -->
-            <div class="col-md-6">
-                <div class="card p-3 mb-4 shadow-sm">
-                    <h4>Add Product to {{ current_store.upper() }}</h4>
-                    <form id="add-product-form" onsubmit="addProduct(event)">
-                        <input type="hidden" id="prod-store-id" value="{{ current_store }}">
-                        <div class="mb-2">
-                            <label class="form-label">Product Name</label>
-                            <input type="text" id="prod-name" class="form-control" required>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Price (CFA )</label>
-                            <input type="number" id="prod-price" class="form-control" step="0.01" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Initial Stock</label>
-                            <input type="number" id="prod-stock" class="form-control" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-sm w-100">Add Product</button>
-                    </form>
-                </div>
-
-                <div class="card p-3 mb-4 shadow-sm">
-                    <h4>Inventory for {{ current_store.upper() }}</h4>
-                    <table class="table">
-                        <thead><tr><th>Name</th><th>Price</th><th>Stock</th></tr></thead>
-                        <tbody>
-                            {% for p in products %}
-                            <tr><td>{{ p.name }}</td><td>CFA {{ p.price }}</td><td>{{ p.stock }}</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Sales Summary -->
-            <div class="col-md-6">
-                <div class="card p-3 mb-4 shadow-sm">
-                    <h4>Sales Summary (Total: CFA {{ total_sales }})</h4>
-                    <table class="table">
-                        <thead><tr><th>Sale ID</th><th>Amount</th><th>Time</th></tr></thead>
-                        <tbody>
-                            {% for s in sales %}
-                            <tr><td>#{{ s.id }}</td><td>CFA {{ s.total_amount }}</td><td>{{ s.created_at.strftime('%Y-%m-%d %H:%M') }}</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
     <script>
-        function switchStore(storeId) {
-            window.location.href = `/owner?store_id=${storeId}`;
-        }
+    function executeStockTransfer() {
+        const productId = document.getElementById("transferProductId").value;
+        const shop = document.getElementById("transferShop").value;
+        const qty = parseInt(document.getElementById("transferQty").value);
 
-        async function addProduct(e) {
-            e.preventDefault();
-            let res = await fetch('/api/products', {
-        credentials: 'include',
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: document.getElementById('prod-name').value,
-                    price: parseFloat(document.getElementById('prod-price').value),
-                    stock: parseInt(document.getElementById('prod-stock').value),
-                    store_id: document.getElementById('prod-store-id').value
-                })
-            });
-            let data = await res.json();
-            if (res.ok) {
-                alert('Product added successfully!');
+        fetch("/api/allocate_stock", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ product_id: productId, shop: shop, qty: qty })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
                 location.reload();
             } else {
-                alert(data.error || 'Failed to add product');
+                alert("Error: " + (data.error || "Transfer failed"));
             }
-        }
+        })
+        .catch(err => alert("Connection error during transfer."));
+    }
+
+    function executeStockTransferModal(productId) {
+        document.getElementById("transferProductId").value = productId;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     </script>
 </body>
 </html>
-
-
-<div class="overflow-x-auto bg-white rounded-2xl shadow-xl border border-stone-200 p-6 mt-6">
-    <h3 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-4"></h3>
-    <table class="w-full text-left border-collapse">
-        <thead>
-            <tr class="border-b border-stone-200 text-[10px] uppercase tracking-widest text-stone-500">
-                <th class="py-3 px-4">Item Name</th>
-                <th class="py-3 px-4">Main Stock</th>
-                <th class="py-3 px-4">Price (XAF)</th>
-                <th class="py-3 px-4 text-teal-700">Shop 1 (Stock / Sold)</th>
-                <th class="py-3 px-4 text-teal-700">Shop 2 (Stock / Sold)</th>
-                <th class="py-3 px-4 text-teal-700">Shop 3 (Stock / Sold)</th>
-                <th class="py-3 px-4">Action</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-stone-100 text-sm">
-            {% for p in products %}
-            <tr>
-                <td class="py-4 px-4 font-bold text-stone-800">{{ p.name.replace("(SHOP1)", "").replace("(SHOP2)", "").replace("(SHOP3)", "").strip() }}</td>
-                <td class="py-4 px-4 font-semibold text-stone-600">{{ p.main_stock | default(p.stock, true) }}</td>
-                <td class="py-4 px-4 font-semibold text-stone-600">{{ "{:,.0f}".format(p.price) }}</td>
-                <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop1_stock | default(p.stock, true) }} / <span class="text-red-600">{{ p.shop1_sold | default(0) }} sold</span></td>
-                <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop2_stock | default(0) }} / <span class="text-red-600">{{ p.shop2_sold | default(0) }} sold</span></td>
-                <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop3_stock | default(0) }} / <span class="text-red-600">{{ p.shop3_sold | default(0) }} sold</span></td>
-                <td class="py-4 px-4">
-                    <button onclick="openAllocateModal({{ p.id }})" class="bg-teal-950 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-teal-900 transition">Share Stock</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>

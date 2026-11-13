@@ -30,7 +30,11 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="productGrid">
                 {% for p in products %}
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-stone-200 flex flex-col justify-between product-card" data-name="{{ p.name | lower }}">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-stone-200 flex flex-col justify-between product-card" 
+                     data-name="{{ p.name | lower }}"
+                     data-id="{{ p.id }}"
+                     data-itemname="{{ p.name }}"
+                     data-price="{{ p.price }}">
                     <div>
                         <h3 class="font-black text-stone-800 text-base mb-1">{{ p.name }}</h3>
                         <p class="text-xs text-stone-500 mb-1">Price: CFA {{ "{:,.0f}".format(p.price) }}</p>
@@ -41,12 +45,12 @@
                         <div class="flex items-center justify-between bg-stone-50 px-3 py-2 rounded-xl border border-stone-200">
                             <span class="text-xs font-bold text-stone-600">Qty:</span>
                             <div class="flex items-center space-x-2">
-                                <button type="button" onclick="adjustCardQty('{{ p.id }}', -1)" class="w-8 h-8 bg-red-100 text-red-700 font-black rounded-lg flex items-center justify-center hover:bg-red-200 transition text-sm">-</button>
-                                <input type="number" id="qty-{{ p.id }}" value="1" min="1" class="w-12 text-center font-bold text-stone-800 bg-white border border-stone-300 rounded-lg text-sm">
-                                <button type="button" onclick="adjustCardQty('{{ p.id }}', 1)" class="w-8 h-8 bg-teal-100 text-teal-900 font-black rounded-lg flex items-center justify-center hover:bg-teal-200 transition text-sm">+</button>
+                                <button type="button" onclick="adjustQty(this, -1)" class="w-8 h-8 bg-red-100 text-red-700 font-black rounded-lg flex items-center justify-center hover:bg-red-200 transition text-sm">-</button>
+                                <input type="number" value="1" min="1" class="item-qty-input w-12 text-center font-bold text-stone-800 bg-white border border-stone-300 rounded-lg text-sm">
+                                <button type="button" onclick="adjustQty(this, 1)" class="w-8 h-8 bg-teal-100 text-teal-900 font-black rounded-lg flex items-center justify-center hover:bg-teal-200 transition text-sm">+</button>
                             </div>
                         </div>
-                        <button onclick="addToCart({{ p.id }}, '{{ p.name | replace("'", "\'") }}', {{ p.price }})" class="w-full bg-teal-800 text-white py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-teal-900 transition shadow-md">
+                        <button onclick="addCardToCart(this)" class="w-full bg-teal-800 text-white py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-teal-900 transition shadow-md">
                             Add to Sale
                         </button>
                     </div>
@@ -112,8 +116,9 @@
     </div>
 
     <script>
-    function adjustCardQty(itemId, change) {
-        const input = document.getElementById('qty-' + itemId);
+    function adjustQty(btn, change) {
+        let card = btn.closest('.product-card');
+        let input = card.querySelector('.item-qty-input');
         if (!input) return;
         let val = parseInt(input.value) || 1;
         val += change;
@@ -123,8 +128,12 @@
 
     let cart = [];
 
-    function addToCart(id, name, price) {
-        const input = document.getElementById('qty-' + id);
+    function addCardToCart(btn) {
+        let card = btn.closest('.product-card');
+        let id = parseInt(card.getAttribute('data-id'));
+        let name = card.getAttribute('data-itemname');
+        let price = parseFloat(card.getAttribute('data-price'));
+        let input = card.querySelector('.item-qty-input');
         let qty = input ? parseInt(input.value) || 1 : 1;
         
         let existing = cart.find(item => item.id === id);

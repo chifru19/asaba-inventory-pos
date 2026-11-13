@@ -19,6 +19,11 @@ def create_app():
     with app.app_context():
         db.create_all()
 
+    
+    @app.route('/health')
+    def health_check():
+        return {"status": "healthy"}, 200
+
     @app.route('/')
     def index():
         if 'user_id' not in session:

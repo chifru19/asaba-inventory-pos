@@ -96,7 +96,7 @@ def create_app():
         
         product = Product.query.get(product_id)
         if not product:
-            return jsonify({"error": "Product not found"}}, 404
+            return jsonify({"error": "Product not found"}), 404
             
         main_stk = getattr(product, 'main_stock', product.stock)
         if main_stk < qty:

@@ -19,10 +19,10 @@ def create_app():
     with app.app_context():
         db.create_all()
         if not User.query.filter_by(username='owner').first():
-            owner = User(username='owner', password=generate_password_hash('owner123'), role='owner')
+            owner = User(username='owner', password_hash=generate_password_hash('owner123'), role='owner')
             db.session.add(owner)
         if not User.query.filter_by(username='worker_shop1').first():
-            worker = User(username='worker_shop1', password=generate_password_hash('worker123'), role='worker')
+            worker = User(username='worker_shop1', password_hash=generate_password_hash('worker123'), role='worker')
             db.session.add(worker)
         db.session.commit()
 

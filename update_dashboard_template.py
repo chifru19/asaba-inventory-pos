@@ -1,0 +1,216 @@
+dashboard_html = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Dashboard - Asaba POS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-stone-100 min-h-screen font-sans">
+    <div class="max-w-7xl mx-auto p-4 md:p-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-stone-200">
+            <h1 class="text-xl font-black text-stone-800 tracking-tight">Owner Dashboard (Multi-Store Admin)</h1>
+            <a href="/logout" class="bg-red-100 text-red-700 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-red-200 transition">Logout</a>
+        </div>
+
+        <!-- Daily Sales Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                <h3 class="text-xs font-black uppercase text-stone-400 tracking-wider">Shop 1 Sales Today</h3>
+                <p class="text-2xl font-black text-teal-900 mt-2">{{ shop_sales.get('shop1', 0) }} orders</p>
+                <p class="text-sm font-bold text-stone-600 mt-1">Revenue: XAF {{ "{:,.0f}".format(shop_revenue.get('shop1', 0)) }}</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                <h3 class="text-xs font-black uppercase text-stone-400 tracking-wider">Shop 2 Sales Today</h3>
+                <p class="text-2xl font-black text-teal-900 mt-2">{{ shop_sales.get('shop2', 0) }} orders</p>
+                <p class="text-sm font-bold text-stone-600 mt-1">Revenue: XAF {{ "{:,.0f}".format(shop_revenue.get('shop2', 0)) }}</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                <h3 class="text-xs font-black uppercase text-stone-400 tracking-wider">Shop 3 Sales Today</h3>
+                <p class="text-2xl font-black text-teal-900 mt-2">{{ shop_sales.get('shop3', 0) }} orders</p>
+                <p class="text-sm font-bold text-stone-600 mt-1">Revenue: XAF {{ "{:,.0f}".format(shop_revenue.get('shop3', 0)) }}</p>
+            </div>
+        </div>
+
+        <!-- Add New Product Widget -->
+        <div class="bg-white rounded-2xl shadow-xl border border-stone-200 p-6 mb-6">
+            <h3 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-2">➕ Add New Product to Main Stock</h3>
+            <p class="text-xs text-stone-500 mb-4">Create a new item, set its retail price, and stock initial quantities in the central warehouse.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-stone-600 mb-1">Product Name</label>
+                    <input type="text" id="newProductName" placeholder="e.g. Body Spray" class="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-sm font-semibold text-stone-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-stone-600 mb-1">Price (XAF)</label>
+                    <input type="number" id="newProductPrice" placeholder="1000" class="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-sm font-semibold text-stone-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-stone-600 mb-1">Initial Main Stock</label>
+                    <input type="number" id="newProductStock" value="100" class="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-sm font-semibold text-stone-800">
+                </div>
+                <div>
+                    <button onclick="addNewProduct()" class="w-full bg-emerald-900 text-white py-3 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-emerald-800 transition shadow-md">
+                        Add Product ➔
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Central Stock Transfer to Shops Widget -->
+        <div class="bg-white rounded-2xl shadow-xl border border-stone-200 p-6 mb-6">
+            <h3 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-2">📦 Central Stock Transfer to Shops</h3>
+            <p class="text-xs text-stone-500 mb-4">Select an item from main inventory, deduct from warehouse, and instantly distribute quantities to Shop 1, Shop 2, or Shop 3.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-stone-600 mb-1">Select Product</label>
+                    <select id="transferProductId" class="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-sm font-semibold text-stone-800">
+                        {% for p in products %}
+                        <option value="{{ p.id }}">{{ p.name }} (Main: {{ p.main_stock }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-stone-600 mb-1">Destination Shop</label>
+                    <select id="transferShop" class="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-sm font-semibold text-stone-800">
+                        <option value="shop1">Shop 1</option>
+                        <option value="shop2">Shop 2</option>
+                        <option value="shop3">Shop 3</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-stone-600 mb-1">Quantity to Transfer</label>
+                    <input type="number" id="transferQty" min="1" value="10" class="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-sm font-semibold text-stone-800">
+                </div>
+                <div>
+                    <button onclick="executeStockTransfer()" class="w-full bg-teal-950 text-white py-3 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-teal-900 transition shadow-md">
+                        Transfer Stock ➔
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Central Stock & Multi-Shop Allocation Table -->
+        <div class="overflow-x-auto bg-white rounded-2xl shadow-xl border border-stone-200 p-6">
+            <h3 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-4">Central Stock & Multi-Shop Allocation</h3>
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-stone-200 text-[10px] uppercase tracking-widest text-stone-500">
+                        <th class="py-3 px-4">Item Name</th>
+                        <th class="py-3 px-4">Main Stock</th>
+                        <th class="py-3 px-4">Price (XAF)</th>
+                        <th class="py-3 px-4 text-teal-700">Shop 1 Stock</th>
+                        <th class="py-3 px-4 text-teal-700">Shop 2 Stock</th>
+                        <th class="py-3 px-4 text-teal-700">Shop 3 Stock</th>
+                        <th class="py-3 px-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-stone-100 text-sm">
+                    {% for p in products %}
+                    <tr>
+                        <td class="py-4 px-4 font-bold text-stone-800">{{ p.name }}</td>
+                        <td class="py-4 px-4 font-semibold text-stone-600">{{ p.main_stock }}</td>
+                        <td class="py-4 px-4 font-semibold text-stone-600">{{ "{:,.0f}".format(p.price) }}</td>
+                        <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop1_stock }}</td>
+                        <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop2_stock }}</td>
+                        <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop3_stock }}</td>
+                        <td class="py-4 px-4 flex gap-2">
+                            <button onclick="executeStockTransferModal({{ p.id }})" class="bg-teal-950 text-white px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-teal-900 transition">Share Stock</button>
+                            <button onclick="deleteProduct({{ p.id }}, '{{ p.name }}')" class="bg-red-100 text-red-700 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-red-200 transition">Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+    function addNewProduct() {
+        const name = document.getElementById("newProductName").value.trim();
+        const price = parseFloat(document.getElementById("newProductPrice").value);
+        const main_stock = parseInt(document.getElementById("newProductStock").value);
+
+        if (!name || isNaN(price) || price <= 0) {
+            alert("Please provide a valid product name and price.");
+            return;
+        }
+
+        fetch("/api/products", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ name: name, price: price, main_stock: main_stock })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert("Error: " + (data.error || "Failed to add product"));
+            }
+        })
+        .catch(err => alert("Connection error while adding product."));
+    }
+
+    function deleteProduct(productId, productName) {
+        if (!confirm(`Are you sure you want to delete "${productName}" from the system?`)) {
+            return;
+        }
+
+        fetch(`/api/products/${productId}`, {
+            method: "DELETE",
+            credentials: "include"
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert("Error: " + (data.error || "Failed to delete product"));
+            }
+        })
+        .catch(err => alert("Connection error while deleting product."));
+    }
+
+    function executeStockTransfer() {
+        const productId = document.getElementById("transferProductId").value;
+        const shop = document.getElementById("transferShop").value;
+        const qty = parseInt(document.getElementById("transferQty").value);
+
+        fetch("/api/allocate_stock", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ product_id: productId, shop: shop, qty: qty })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert("Error: " + (data.error || "Transfer failed"));
+            }
+        })
+        .catch(err => alert("Connection error during transfer."));
+    }
+
+    function executeStockTransferModal(productId) {
+        document.getElementById("transferProductId").value = productId;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    </script>
+</body>
+</html>
+'''
+
+with open("app/templates/owner_dashboard.html", "w") as f:
+    f.write(dashboard_html)
+
+print("Updated owner_dashboard.html successfully!")

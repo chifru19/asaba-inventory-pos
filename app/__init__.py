@@ -92,29 +92,48 @@ def create_app():
         if 'user_id' not in session:
             return redirect(url_for('login'))
         products = Product.query.all()
-        return render_template('owner_dashboard.html', products=products)
+        
+        today = date.today()
+        sales_today = Sale.query.filter(db.func.date(Sale.created_at) == today).all()
+        
+        shop_sales = {'shop1': 0, 'shop2': 0, 'shop3': 0}
+        shop_revenue = {'shop1': 0.0, 'shop2': 0.0, 'shop3': 0.0}
+        
+        for s in sales_today:
+            s_shop = getattr(s, 'store_id', 'shop1')
+            if s_shop in shop_sales:
+                shop_sales[s_shop] += 1
+                shop_revenue[s_shop] += float(s.total_amount or 0)
+
+        return render_template('owner_dashboard.html', products=products, shop_sales=shop_sales, shop_revenue=shop_revenue)
 
     @app.route('/api/allocate_stock', methods=['POST'])
     def allocate_stock():
         try:
             data = request.get_json() or {}
             product_id = data.get('product_id')
-            shop = data.get('shop')
+            shop = data.get('shop') # 'shop1', 'shop2', 'shop3'
             qty = int(data.get('qty', 0))
 
             product = Product.query.get(product_id)
             if not product:
                 return jsonify({"error": "Product not found"}), 404
 
+            main_stk = getattr(product, 'main_stock', 0) or 0
+            if main_stk < qty:
+                return jsonify({"error": "Insufficient main stock for transfer!"}), 400
+
             shop_attr = f"{shop}_stock"
             if not hasattr(product, shop_attr):
                 return jsonify({"error": "Invalid shop target"}), 400
 
+            # Deduct from main and add to shop
+            product.main_stock = main_stk - qty
             current_shop_stk = getattr(product, shop_attr, 0) or 0
             setattr(product, shop_attr, current_shop_stk + qty)
 
             db.session.commit()
-            return jsonify({"success": True, "message": f"Successfully transferred {qty} units to {shop.upper()}!"})
+            return jsonify({"success": True, "message": f"Successfully transferred {qty} units to {shop.upper()} from Main Stock!"})
         except Exception as e:
             db.session.rollback()
             return jsonify({"error": str(e)}), 500

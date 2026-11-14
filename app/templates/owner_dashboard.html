@@ -14,17 +14,36 @@
             <a href="/logout" class="bg-red-100 text-red-700 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-red-200 transition">Logout</a>
         </div>
 
+        <!-- Daily Sales Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                <h3 class="text-xs font-black uppercase text-stone-400 tracking-wider">Shop 1 Sales Today</h3>
+                <p class="text-2xl font-black text-teal-900 mt-2">{{ shop_sales.get('shop1', 0) }} orders</p>
+                <p class="text-sm font-bold text-stone-600 mt-1">Revenue: XAF {{ "{:,.0f}".format(shop_revenue.get('shop1', 0)) }}</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                <h3 class="text-xs font-black uppercase text-stone-400 tracking-wider">Shop 2 Sales Today</h3>
+                <p class="text-2xl font-black text-teal-900 mt-2">{{ shop_sales.get('shop2', 0) }} orders</p>
+                <p class="text-sm font-bold text-stone-600 mt-1">Revenue: XAF {{ "{:,.0f}".format(shop_revenue.get('shop2', 0)) }}</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                <h3 class="text-xs font-black uppercase text-stone-400 tracking-wider">Shop 3 Sales Today</h3>
+                <p class="text-2xl font-black text-teal-900 mt-2">{{ shop_sales.get('shop3', 0) }} orders</p>
+                <p class="text-sm font-bold text-stone-600 mt-1">Revenue: XAF {{ "{:,.0f}".format(shop_revenue.get('shop3', 0)) }}</p>
+            </div>
+        </div>
+
         <!-- Central Stock Transfer to Shops Widget -->
         <div class="bg-white rounded-2xl shadow-xl border border-stone-200 p-6 mb-6">
             <h3 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-2">📦 Central Stock Transfer to Shops</h3>
-            <p class="text-xs text-stone-500 mb-4">Select an item from main inventory and instantly distribute quantities to Shop 1, Shop 2, or Shop 3.</p>
+            <p class="text-xs text-stone-500 mb-4">Select an item from main inventory, deduct from warehouse, and instantly distribute quantities to Shop 1, Shop 2, or Shop 3.</p>
             
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                 <div>
                     <label class="block text-xs font-bold uppercase text-stone-600 mb-1">Select Product</label>
                     <select id="transferProductId" class="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-sm font-semibold text-stone-800">
                         {% for p in products %}
-                        <option value="{{ p.id }}">{{ p.name.replace("(SHOP1)", "").replace("(SHOP2)", "").replace("(SHOP3)", "").strip() }} (Main: {{ p.main_stock | default(p.stock, true) }})</option>
+                        <option value="{{ p.id }}">{{ p.name }} (Main: {{ p.main_stock }})</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -57,21 +76,21 @@
                         <th class="py-3 px-4">Item Name</th>
                         <th class="py-3 px-4">Main Stock</th>
                         <th class="py-3 px-4">Price (XAF)</th>
-                        <th class="py-3 px-4 text-teal-700">Shop 1 (Stock / Sold)</th>
-                        <th class="py-3 px-4 text-teal-700">Shop 2 (Stock / Sold)</th>
-                        <th class="py-3 px-4 text-teal-700">Shop 3 (Stock / Sold)</th>
+                        <th class="py-3 px-4 text-teal-700">Shop 1 Stock</th>
+                        <th class="py-3 px-4 text-teal-700">Shop 2 Stock</th>
+                        <th class="py-3 px-4 text-teal-700">Shop 3 Stock</th>
                         <th class="py-3 px-4">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-stone-100 text-sm">
                     {% for p in products %}
                     <tr>
-                        <td class="py-4 px-4 font-bold text-stone-800">{{ p.name.replace("(SHOP1)", "").replace("(SHOP2)", "").replace("(SHOP3)", "").strip() }}</td>
-                        <td class="py-4 px-4 font-semibold text-stone-600">{{ p.main_stock | default(p.stock, true) }}</td>
+                        <td class="py-4 px-4 font-bold text-stone-800">{{ p.name }}</td>
+                        <td class="py-4 px-4 font-semibold text-stone-600">{{ p.main_stock }}</td>
                         <td class="py-4 px-4 font-semibold text-stone-600">{{ "{:,.0f}".format(p.price) }}</td>
-                        <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop1_stock | default(p.stock, true) }} / <span class="text-red-600">{{ p.shop1_sold | default(0) }} sold</span></td>
-                        <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop2_stock | default(0) }} / <span class="text-red-600">{{ p.shop2_sold | default(0) }} sold</span></td>
-                        <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop3_stock | default(0) }} / <span class="text-red-600">{{ p.shop3_sold | default(0) }} sold</span></td>
+                        <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop1_stock }}</td>
+                        <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop2_stock }}</td>
+                        <td class="py-4 px-4 font-bold text-teal-900">{{ p.shop3_stock }}</td>
                         <td class="py-4 px-4">
                             <button onclick="executeStockTransferModal({{ p.id }})" class="bg-teal-950 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-teal-900 transition">Share Stock</button>
                         </td>

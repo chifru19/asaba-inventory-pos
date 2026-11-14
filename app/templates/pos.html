@@ -31,11 +31,14 @@
                         </div>
                         <div class="mt-4 flex items-center gap-2">
                             <div class="flex items-center border border-stone-300 rounded-lg bg-white overflow-hidden">
-                                <button type="button" onclick="adjustQty('{{ p.id }}', -1)" class="px-2 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs">-</button>
+                                <button type="button" class="qty-dec px-2 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs" data-id="{{ p.id }}">-</button>
                                 <input type="number" id="qty-{{ p.id }}" min="1" value="1" class="w-10 py-1 text-xs font-bold text-center focus:outline-none">
-                                <button type="button" onclick="adjustQty('{{ p.id }}', 1)" class="px-2 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs">+</button>
+                                <button type="button" class="qty-inc px-2 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs" data-id="{{ p.id }}">+</button>
                             </div>
-                            <button onclick="addToSale('{{ p.id }}', '{{ p.name }}', {{ p.price }})" class="flex-1 bg-teal-950 text-white py-2 px-3 rounded-lg font-bold uppercase text-[10px] tracking-wider hover:bg-teal-900 transition">
+                            <button type="button" class="add-btn flex-1 bg-teal-950 text-white py-2 px-3 rounded-lg font-bold uppercase text-[10px] tracking-wider hover:bg-teal-900 transition"
+                                data-id="{{ p.id }}"
+                                data-name="{{ p.name }}"
+                                data-price="{{ p.price }}">
                                 + Add to Sale
                             </button>
                         </div>
@@ -58,7 +61,7 @@
                         <span class="font-bold text-stone-600 uppercase text-xs">Total:</span>
                         <span id="cartTotal" class="text-xl font-black text-teal-950">CFA 0</span>
                     </div>
-                    <button onclick="completeSale()" class="w-full bg-emerald-700 text-white py-3 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-emerald-800 transition shadow-md">
+                    <button type="button" id="completeSaleBtn" class="w-full bg-emerald-700 text-white py-3 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-emerald-800 transition shadow-md">
                         Complete Sale & Print Receipt
                     </button>
                 </div>
@@ -71,25 +74,49 @@
         const currentShop = "{{ username }}";
         const storeName = "{{ store_name }}";
 
-        function adjustQty(id, delta) {
-            const input = document.getElementById('qty-' + id);
-            let val = parseInt(input.value) || 1;
-            val = Math.max(1, val + delta);
-            input.value = val;
-        }
+        document.addEventListener('DOMContentLoaded', function() {
+            // Quantity decrease buttons
+            document.querySelectorAll('.qty-dec').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const input = document.getElementById('qty-' + id);
+                    let val = parseInt(input.value) || 1;
+                    input.value = Math.max(1, val - 1);
+                });
+            });
 
-        function addToSale(id, name, price) {
-            const qtyInput = document.getElementById('qty-' + id);
-            const qty = parseInt(qtyInput.value) || 1;
-            
-            const existing = cart.find(function(item) { return item.id === id; });
-            if (existing) {
-                existing.qty += qty;
-            } else {
-                cart.push({ id: id, name: name, price: price, qty: qty });
-            }
-            renderCart();
-        }
+            // Quantity increase buttons
+            document.querySelectorAll('.qty-inc').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const input = document.getElementById('qty-' + id);
+                    let val = parseInt(input.value) || 1;
+                    input.value = val + 1;
+                });
+            });
+
+            // Add to sale buttons
+            document.querySelectorAll('.add-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const name = this.getAttribute('data-name');
+                    const price = parseFloat(this.getAttribute('data-price'));
+                    const qtyInput = document.getElementById('qty-' + id);
+                    const qty = parseInt(qtyInput.value) || 1;
+                    
+                    const existing = cart.find(function(item) { return item.id == id; });
+                    if (existing) {
+                        existing.qty += qty;
+                    } else {
+                        cart.push({ id: id, name: name, price: price, qty: qty });
+                    }
+                    renderCart();
+                });
+            });
+
+            // Complete sale button
+            document.getElementById('completeSaleBtn').addEventListener('click', completeSale);
+        });
 
         function renderCart() {
             const container = document.getElementById("cartItems");
@@ -113,17 +140,21 @@
                         '</div>' +
                         '<div class="flex items-center gap-3">' +
                         '<span class="font-bold text-teal-900">CFA ' + subtotal.toLocaleString() + '</span>' +
-                        '<button onclick="removeFromCart(' + index + ')" class="text-red-500 font-bold hover:text-red-700">✕</button>' +
+                        '<button type="button" class="remove-btn text-red-500 font-bold hover:text-red-700" data-index="' + index + '">✕</button>' +
                         '</div>' +
                         '</div>';
             });
             container.innerHTML = html;
             totalContainer.innerText = "CFA " + total.toLocaleString();
-        }
 
-        function removeFromCart(index) {
-            cart.splice(index, 1);
-            renderCart();
+            // Bind remove buttons
+            document.querySelectorAll('.remove-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const idx = parseInt(this.getAttribute('data-index'));
+                    cart.splice(idx, 1);
+                    renderCart();
+                });
+            });
         }
 
         function printReceipt(saleData) {

@@ -1,0 +1,243 @@
+import os
+
+pos_html = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS - Asaba {{ store_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-stone-100 min-h-screen font-sans">
+    <div class="max-w-7xl mx-auto p-4 md:p-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-stone-200">
+            <div>
+                <h1 class="text-xl font-black text-stone-800 tracking-tight">Asaba POS</h1>
+                <p class="text-xs font-bold text-teal-800 uppercase tracking-widest mt-0.5">Point of Sale — {{ store_name }}</p>
+            </div>
+            <a href="/logout" class="bg-red-100 text-red-700 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-red-200 transition">Logout</a>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Inventory Catalog -->
+            <div class="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-stone-200 p-6">
+                <h2 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-4">Inventory Catalog ({{ store_name }})</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[650px] overflow-y-auto pr-2">
+                    {% for p in products %}
+                    <div class="bg-stone-50 border border-stone-200 p-4 rounded-xl flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-stone-800 text-sm">{{ p.name }}</h3>
+                            <p class="text-xs text-stone-500 mt-1">Price: CFA {{ "{:,.0f}".format(p.price) }}</p>
+                            <p class="text-xs font-semibold text-teal-700 mt-0.5">Stock Available: <span>{{ p.stock }}</span></p>
+                        </div>
+                        <div class="mt-4 flex items-center gap-2">
+                            <div class="flex items-center border border-stone-300 rounded-lg bg-white overflow-hidden">
+                                <button type="button" class="qty-dec px-2 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs" data-id="{{ p.id }}">-</button>
+                                <input type="number" id="qty-{{ p.id }}" min="1" value="1" class="w-10 py-1 text-xs font-bold text-center focus:outline-none">
+                                <button type="button" class="qty-inc px-2 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs" data-id="{{ p.id }}">+</button>
+                            </div>
+                            <button type="button" class="add-btn flex-1 bg-teal-950 text-white py-2 px-3 rounded-lg font-bold uppercase text-[10px] tracking-wider hover:bg-teal-900 transition"
+                                data-id="{{ p.id }}"
+                                data-name="{{ p.name }}"
+                                data-price="{{ p.price }}">
+                                + Add to Sale
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Current Sale Cart -->
+            <div class="bg-white rounded-2xl shadow-xl border border-stone-200 p-6 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-4">Current Sale</h2>
+                    <div id="cartItems" class="space-y-3 mb-4 max-h-[350px] overflow-y-auto pr-1">
+                        <p class="text-stone-400 text-xs italic">No items added yet.</p>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="border-t border-stone-200 pt-4 mb-4 flex justify-between items-center">
+                        <span class="font-bold text-stone-600 uppercase text-xs">Total:</span>
+                        <span id="cartTotal" class="text-xl font-black text-teal-950">CFA 0</span>
+                    </div>
+                    <button type="button" id="completeSaleBtn" class="w-full bg-emerald-700 text-white py-3 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-emerald-800 transition shadow-md">
+                        Complete Sale & Print Receipt
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cart = [];
+        const currentShop = "{{ username }}";
+        const storeName = "{{ store_name }}";
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Quantity decrease buttons
+            document.querySelectorAll('.qty-dec').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const input = document.getElementById('qty-' + id);
+                    let val = parseInt(input.value) || 1;
+                    input.value = Math.max(1, val - 1);
+                });
+            });
+
+            // Quantity increase buttons
+            document.querySelectorAll('.qty-inc').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const input = document.getElementById('qty-' + id);
+                    let val = parseInt(input.value) || 1;
+                    input.value = val + 1;
+                });
+            });
+
+            // Add to sale buttons
+            document.querySelectorAll('.add-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const name = this.getAttribute('data-name');
+                    const price = parseFloat(this.getAttribute('data-price'));
+                    const qtyInput = document.getElementById('qty-' + id);
+                    const qty = parseInt(qtyInput.value) || 1;
+                    
+                    const existing = cart.find(function(item) { return item.id == id; });
+                    if (existing) {
+                        existing.qty += qty;
+                    } else {
+                        cart.push({ id: id, name: name, price: price, qty: qty });
+                    }
+                    renderCart();
+                });
+            });
+
+            // Complete sale button
+            document.getElementById('completeSaleBtn').addEventListener('click', completeSale);
+        });
+
+        function renderCart() {
+            const container = document.getElementById("cartItems");
+            const totalContainer = document.getElementById("cartTotal");
+            
+            if (cart.length === 0) {
+                container.innerHTML = '<p class="text-stone-400 text-xs italic">No items added yet.</p>';
+                totalContainer.innerText = "CFA 0";
+                return;
+            }
+
+            let html = "";
+            let total = 0;
+            cart.forEach(function(item, index) {
+                const subtotal = item.price * item.qty;
+                total += subtotal;
+                html += '<div class="flex justify-between items-center bg-stone-50 p-3 rounded-xl border border-stone-200 text-xs">' +
+                        '<div>' +
+                        '<p class="font-bold text-stone-800">' + item.name + '</p>' +
+                        '<p class="text-stone-500">' + item.qty + ' x CFA ' + item.price.toLocaleString() + '</p>' +
+                        '</div>' +
+                        '<div class="flex items-center gap-3">' +
+                        '<span class="font-bold text-teal-900">CFA ' + subtotal.toLocaleString() + '</span>' +
+                        '<button type="button" class="remove-btn text-red-500 font-bold hover:text-red-700" data-index="' + index + '">✕</button>' +
+                        '</div>' +
+                        '</div>';
+            });
+            container.innerHTML = html;
+            totalContainer.innerText = "CFA " + total.toLocaleString();
+
+            // Bind remove buttons
+            document.querySelectorAll('.remove-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const idx = parseInt(this.getAttribute('data-index'));
+                    cart.splice(idx, 1);
+                    renderCart();
+                });
+            });
+        }
+
+        function printReceipt(saleData) {
+            const win = window.open('', '_blank', 'width=400,height=600');
+            let itemsHtml = '';
+            saleData.items.forEach(function(item) {
+                itemsHtml += '<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">' +
+                             '<span>' + item.qty + 'x ' + item.name + '</span>' +
+                             '<span>CFA ' + (item.price * item.qty).toLocaleString() + '</span>' +
+                             '</div>';
+            });
+
+            win.document.write(
+                '<html>' +
+                '<head>' +
+                '<title>Receipt - Asaba POS</title>' +
+                '<style>' +
+                'body { font-family: monospace; padding: 20px; font-size: 12px; color: #000; }' +
+                '.center { text-align: center; }' +
+                '.bold { font-weight: bold; }' +
+                '.line { border-bottom: 1px dashed #000; margin: 10px 0; }' +
+                '</style>' +
+                '</head>' +
+                '<body>' +
+                '<div class="center bold" style="font-size: 16px;">ASABA POS (' + storeName + ')</div>' +
+                '<div class="center">Official Sales Receipt</div>' +
+                '<div class="center">' + new Date().toLocaleString() + '</div>' +
+                '<div class="line"></div>' +
+                '<div>' + itemsHtml + '</div>' +
+                '<div class="line"></div>' +
+                '<div style="display: flex; justify-content: space-between;" class="bold">' +
+                '<span>TOTAL:</span>' +
+                '<span>CFA ' + saleData.total.toLocaleString() + '</span>' +
+                '</div>' +
+                '<div class="line"></div>' +
+                '<div class="center" style="margin-top: 15px;">Thank you for your patronage!</div>' +
+                '</body>' +
+                '</html>'
+            );
+            win.document.close();
+            win.focus();
+            setTimeout(function() {
+                win.print();
+                win.close();
+            }, 500);
+        }
+
+        function completeSale() {
+            if (cart.length === 0) {
+                alert("Cart is empty!");
+                return;
+            }
+
+            const total = cart.reduce(function(sum, item) { return sum + (item.price * item.qty); }, 0);
+            const salePayload = { items: cart.slice(), total: total, shop: currentShop };
+
+            fetch("/api/sales", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify(salePayload)
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    printReceipt(salePayload);
+                    alert("Sale completed and receipt generated!");
+                    location.reload();
+                } else {
+                    alert("Error: " + (data.error || "Sale failed"));
+                }
+            })
+            .catch(function(err) { alert("Connection error during checkout."); });
+        }
+    </script>
+</body>
+</html>
+'''
+
+os.makedirs("app/templates", exist_ok=True)
+with open("app/templates/pos.html", "w") as f:
+    f.write(pos_html)
+
+print("Removed all inline JS attributes to achieve 0 linter errors!")

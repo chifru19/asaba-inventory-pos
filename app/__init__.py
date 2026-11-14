@@ -21,12 +21,12 @@ def create_app():
         try:
             if not User.query.filter_by(username='owner').first():
                 db.session.add(User(username='owner', password_hash=generate_password_hash('owner123'), role='owner'))
-            if not User.query.filter_by(username='worker_shop1').first():
-                db.session.add(User(username='worker_shop1', password_hash=generate_password_hash('worker123'), role='worker'))
-            if not User.query.filter_by(username='worker_shop2').first():
-                db.session.add(User(username='worker_shop2', password_hash=generate_password_hash('worker123'), role='worker'))
-            if not User.query.filter_by(username='worker_shop3').first():
-                db.session.add(User(username='worker_shop3', password_hash=generate_password_hash('worker123'), role='worker'))
+            if not User.query.filter_by(username='shop1').first():
+                db.session.add(User(username='shop1', password_hash=generate_password_hash('worker123'), role='worker'))
+            if not User.query.filter_by(username='shop2').first():
+                db.session.add(User(username='shop2', password_hash=generate_password_hash('worker123'), role='worker'))
+            if not User.query.filter_by(username='shop3').first():
+                db.session.add(User(username='shop3', password_hash=generate_password_hash('worker123'), role='worker'))
             if not User.query.filter_by(username='admin').first():
                 db.session.add(User(username='admin', password_hash=generate_password_hash('admin123'), role='owner'))
             db.session.commit()
@@ -160,8 +160,11 @@ def create_app():
     def pos():
         if 'user_id' not in session:
             return redirect(url_for('login'))
+        user = User.query.get(session['user_id'])
         products = Product.query.all()
-        return render_template('pos.html', products=products)
+        # Determine store name based on username (e.g. shop1, shop2, shop3)
+        store_name = user.username.upper() if user and user.role == 'worker' else 'SHOP 1'
+        return render_template('pos.html', products=products, store_name=store_name, username=user.username if user else 'shop1')
 
     @app.route('/owner')
     def owner_dashboard():

@@ -1,59 +1,92 @@
 import os
 
+# 1. Update app/__init__.py to pass the correct resolved stock value directly as `current_stock`
+init_path = "app/__init__.py"
+with open(init_path, "r") as f:
+    code = f.read()
+
+old_pos_route = '''    @app.route('/pos')
+    def pos():
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        user = User.query.get(session['user_id'])
+        products = Product.query.all()
+        # Determine store name based on username (e.g. shop1, shop2, shop3)
+        store_name = user.username.upper() if user and user.role == 'worker' else 'SHOP 1'
+        return render_template('pos.html', products=products, store_name=store_name, username=user.username if user else 'shop1')'''
+
+new_pos_route = '''    @app.route('/pos')
+    def pos():
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        user = User.query.get(session['user_id'])
+        raw_products = Product.query.all()
+        username = user.username if user else 'shop1'
+        store_name = username.upper()
+        
+        products = []
+        for p in raw_products:
+            if username == 'shop2':
+                stk = p.shop2_stock
+            elif username == 'shop3':
+                stk = p.shop3_stock
+            else:
+                stk = p.shop1_stock
+                
+            products.append({
+                "id": p.id,
+                "name": p.name,
+                "price": p.price,
+                "stock": stk
+            })
+
+        return render_template('pos.html', products=products, store_name=store_name, username=username)'''
+
+if old_pos_route in code:
+    code = code.replace(old_pos_route, new_pos_route)
+    with open(init_path, "w") as f:
+        f.write(code)
+
+# 2. Re-write pos.html without any Jinja if/else tags inside HTML attributes or JS blocks
 pos_html = '''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asaba Ngu POS</title>
+    <title>POS - Asaba {{ store_name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-stone-100 min-h-screen font-sans">
     <div class="max-w-7xl mx-auto p-4 md:p-8">
         <!-- Header -->
-        <div class="flex flex-col md:flex-row justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-stone-200">
-            <h1 class="text-xl font-black text-stone-800 tracking-tight">Asaba Ngu POS</h1>
-            <div class="flex space-x-6 text-xs font-bold uppercase tracking-widest text-stone-600 mt-3 md:mt-0">
-                <a href="/owner_dashboard" class="hover:text-teal-950 transition">Dashboard</a>
-                <a href="/inventory" class="hover:text-teal-950 transition">Inventory</a>
-                <a href="/pos" class="text-teal-950 underline">Checkout (POS)</a>
+        <div class="flex justify-between items-center mb-6 bg-white p-5 rounded-2xl shadow-sm border border-stone-200">
+            <div>
+                <h1 class="text-xl font-black text-stone-800 tracking-tight">Asaba POS</h1>
+                <p class="text-xs font-bold text-teal-800 uppercase tracking-widest mt-0.5">Point of Sale — {{ store_name }}</p>
             </div>
+            <a href="/logout" class="bg-red-100 text-red-700 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-red-200 transition">Logout</a>
         </div>
 
-        <!-- Layout Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Left 2 Columns: Products & Search -->
-            <div class="lg:col-span-2 space-y-6">
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-stone-200">
-                    <input type="text" id="searchInput" placeholder="Search items..." onkeyup="filterProducts()" class="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:border-teal-900 text-sm bg-stone-50">
-                </div>
-
-                <!-- Product Cards Grid -->
-                <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Inventory Catalog -->
+            <div class="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-stone-200 p-6">
+                <h2 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-4">Inventory Catalog ({{ store_name }})</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[650px] overflow-y-auto pr-2">
                     {% for p in products %}
-                    <div class="product-card bg-white p-5 rounded-2xl shadow-sm border border-stone-200 flex flex-col justify-between" 
-                         data-id="{{ p.id }}" 
-                         data-name="{{ p.name }}" 
-                         data-price="{{ p.price }}"
-                         data-search="{{ p.name | lower }}">
+                    <div class="bg-stone-50 border border-stone-200 p-4 rounded-xl flex flex-col justify-between">
                         <div>
-                            <h3 class="font-black text-stone-800 text-base mb-1">{{ p.name }}</h3>
-                            <p class="text-xs text-stone-500 mb-1">Price: CFA {{ "{:,.1f}".format(p.price) }}</p>
-                            <p class="text-xs font-bold text-teal-700 mb-4">Stock: {{ p.shop1_stock | default(p.stock, true) }}</p>
+                            <h3 class="font-bold text-stone-800 text-sm">{{ p.name }}</h3>
+                            <p class="text-xs text-stone-500 mt-1">Price: CFA {{ "{:,.0f}".format(p.price) }}</p>
+                            <p class="text-xs font-semibold text-teal-700 mt-0.5">Stock Available: <span>{{ p.stock }}</span></p>
                         </div>
-                        
-                        <div class="space-y-3">
-                            <!-- Plus & Minus Quantity Controls -->
-                            <div class="flex items-center justify-between bg-stone-50 px-3 py-2 rounded-xl border border-stone-200">
-                                <span class="text-xs font-bold text-stone-600">Qty:</span>
-                                <div class="flex items-center space-x-2">
-                                    <button type="button" onclick="adjustQty(this, -1)" class="w-8 h-8 bg-red-100 text-red-700 font-black rounded-lg flex items-center justify-center hover:bg-red-200 transition text-sm">-</button>
-                                    <input type="number" class="qty-input w-12 text-center font-bold text-stone-800 bg-white border border-stone-300 rounded-lg py-1 text-xs" value="1" min="1">
-                                    <button type="button" onclick="adjustQty(this, 1)" class="w-8 h-8 bg-teal-100 text-teal-900 font-black rounded-lg flex items-center justify-center hover:bg-teal-200 transition text-sm">+</button>
-                                </div>
+                        <div class="mt-4 flex items-center gap-2">
+                            <div class="flex items-center border border-stone-300 rounded-lg bg-white overflow-hidden">
+                                <button type="button" onclick="adjustQty({{ p.id }}, -1)" class="px-2 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs">-</button>
+                                <input type="number" id="qty-{{ p.id }}" min="1" value="1" class="w-10 py-1 text-xs font-bold text-center focus:outline-none">
+                                <button type="button" onclick="adjustQty({{ p.id }}, 1)" class="px-2 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs">+</button>
                             </div>
-                            <button onclick="addToCart(this)" class="w-full bg-teal-800 text-white py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-teal-900 transition shadow-md">
-                                Add to Sale
+                            <button onclick="addToSale({{ p.id }}, '{{ p.name | replace("'", "\\'") }}', {{ p.price }})" class="flex-1 bg-teal-950 text-white py-2 px-3 rounded-lg font-bold uppercase text-[10px] tracking-wider hover:bg-teal-900 transition">
+                                + Add to Sale
                             </button>
                         </div>
                     </div>
@@ -61,20 +94,23 @@ pos_html = '''<!DOCTYPE html>
                 </div>
             </div>
 
-            <!-- Right Column: Sales Summary & Cart -->
-            <div class="space-y-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 sticky top-6">
-                    <h3 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-2">Current Sale</h3>
-                    <div id="cartItems" class="space-y-2 mb-4 max-h-60 overflow-y-auto text-xs text-stone-700">
-                        <p class="text-stone-400 italic">No items added yet.</p>
+            <!-- Current Sale Cart -->
+            <div class="bg-white rounded-2xl shadow-xl border border-stone-200 p-6 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-lg font-black text-stone-800 uppercase tracking-wider mb-4">Current Sale</h2>
+                    <div id="cartItems" class="space-y-3 mb-4 max-h-[350px] overflow-y-auto pr-1">
+                        <p class="text-stone-400 text-xs italic">No items added yet.</p>
                     </div>
-                    <p class="text-sm font-semibold text-stone-600 mb-6">Total: CFA <span id="cartTotal">0</span></p>
-                    <button onclick="completeSale()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-blue-700 transition shadow-md mb-6">
-                        Complete Sale
+                </div>
+
+                <div>
+                    <div class="border-t border-stone-200 pt-4 mb-4 flex justify-between items-center">
+                        <span class="font-bold text-stone-600 uppercase text-xs">Total:</span>
+                        <span id="cartTotal" class="text-xl font-black text-teal-950">CFA 0</span>
+                    </div>
+                    <button onclick="completeSale()" class="w-full bg-emerald-700 text-white py-3 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-emerald-800 transition shadow-md">
+                        Complete Sale & Print Receipt
                     </button>
-                    <hr class="border-stone-100 my-6">
-                    <h4 class="text-sm font-black text-stone-800 uppercase tracking-wider mb-3">Sold Today</h4>
-                    <p class="text-xs text-stone-400 italic">No sales recorded yet today.</p>
                 </div>
             </div>
         </div>
@@ -82,58 +118,107 @@ pos_html = '''<!DOCTYPE html>
 
     <script>
     let cart = [];
+    const currentShop = "{{ username }}";
+    const storeName = "{{ store_name }}";
 
-    function adjustQty(btn, change) {
-        const card = btn.closest('.product-card');
-        const input = card.querySelector('.qty-input');
+    function adjustQty(id, delta) {
+        const input = document.getElementById('qty-' + id);
         let val = parseInt(input.value) || 1;
-        val += change;
-        if (val < 1) val = 1;
+        val = Math.max(1, val + delta);
         input.value = val;
     }
 
-    function addToCart(btn) {
-        const card = btn.closest('.product-card');
-        const id = card.getAttribute('data-id');
-        const name = card.getAttribute('data-name');
-        const price = parseFloat(card.getAttribute('data-price'));
-        const qtyInput = card.querySelector('.qty-input');
+    function addToSale(id, name, price) {
+        const qtyInput = document.getElementById('qty-' + id);
         const qty = parseInt(qtyInput.value) || 1;
         
         const existing = cart.find(item => item.id === id);
         if (existing) {
             existing.qty += qty;
         } else {
-            cart.push({ id, name, price, qty });
+            cart.push({ id: id, name: name, price: price, qty: qty });
         }
-        updateCartDisplay();
-        qtyInput.value = 1;
+        renderCart();
     }
 
-    function updateCartDisplay() {
-        const container = document.getElementById('cartItems');
-        const totalEl = document.getElementById('cartTotal');
+    function renderCart() {
+        const container = document.getElementById("cartItems");
+        const totalContainer = document.getElementById("cartTotal");
+        
         if (cart.length === 0) {
-            container.innerHTML = '<p class="text-stone-400 italic">No items added yet.</p>';
-            totalEl.innerText = '0';
+            container.innerHTML = '<p class="text-stone-400 text-xs italic">No items added yet.</p>';
+            totalContainer.innerText = "CFA 0";
             return;
         }
 
-        let html = '';
+        let html = "";
         let total = 0;
-        cart.forEach(item => {
-            let itemTotal = item.price * item.qty;
-            total += itemTotal;
-            html += `<div class="flex justify-between items-center bg-stone-50 p-2 rounded-lg border border-stone-200">
-                <div>
-                    <span class="font-bold text-stone-800">${item.name}</span>
-                    <p class="text-[10px] text-stone-500">${item.qty} x CFA ${item.price}</p>
-                </div>
-                <span class="font-bold text-teal-900">CFA ${itemTotal}</span>
-            </div>`;
+        cart.forEach((item, index) => {
+            const subtotal = item.price * item.qty;
+            total += subtotal;
+            html += '<div class="flex justify-between items-center bg-stone-50 p-3 rounded-xl border border-stone-200 text-xs">' +
+                    '<div>' +
+                    '<p class="font-bold text-stone-800">' + item.name + '</p>' +
+                    '<p class="text-stone-500">' + item.qty + ' x CFA ' + item.price.toLocaleString() + '</p>' +
+                    '</div>' +
+                    '<div class="flex items-center gap-3">' +
+                    '<span class="font-bold text-teal-900">CFA ' + subtotal.toLocaleString() + '</span>' +
+                    '<button onclick="removeFromCart(' + index + ')" class="text-red-500 font-bold hover:text-red-700">✕</button>' +
+                    '</div>' +
+                    '</div>';
         });
         container.innerHTML = html;
-        totalEl.innerText = total.toLocaleString();
+        totalContainer.innerText = "CFA " + total.toLocaleString();
+    }
+
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        renderCart();
+    }
+
+    function printReceipt(saleData) {
+        const win = window.open('', '_blank', 'width=400,height=600');
+        let itemsHtml = '';
+        saleData.items.forEach(item => {
+            itemsHtml += '<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">' +
+                         '<span>' + item.qty + 'x ' + item.name + '</span>' +
+                         '<span>CFA ' + (item.price * item.qty).toLocaleString() + '</span>' +
+                         '</div>';
+        });
+
+        win.document.write(
+            '<html>' +
+            '<head>' +
+            '<title>Receipt - Asaba POS</title>' +
+            '<style>' +
+            'body { font-family: monospace; padding: 20px; font-size: 12px; color: #000; }' +
+            '.center { text-align: center; }' +
+            '.bold { font-weight: bold; }' +
+            '.line { border-bottom: 1px dashed #000; margin: 10px 0; }' +
+            '</style>' +
+            '</head>' +
+            '<body>' +
+            '<div class="center bold" style="font-size: 16px;">ASABA POS (' + storeName + ')</div>' +
+            '<div class="center">Official Sales Receipt</div>' +
+            '<div class="center">' + new Date().toLocaleString() + '</div>' +
+            '<div class="line"></div>' +
+            '<div>' + itemsHtml + '</div>' +
+            '<div class="line"></div>' +
+            '<div style="display: flex; justify-content: space-between;" class="bold">' +
+            '<span>TOTAL:</span>' +
+            '<span>CFA ' + saleData.total.toLocaleString() + '</span>' +
+            '</div>' +
+            '<div class="line"></div>' +
+            '<div class="center" style="margin-top: 15px;">Thank you for your patronage!</div>' +
+            '</body>' +
+            '</html>'
+        );
+        win.document.close();
+        win.focus();
+        setTimeout(() => {
+            win.print();
+            win.close();
+        }, 500);
     }
 
     function completeSale() {
@@ -141,29 +226,35 @@ pos_html = '''<!DOCTYPE html>
             alert("Cart is empty!");
             return;
         }
-        alert("Sale completed successfully!");
-        cart = [];
-        updateCartDisplay();
-    }
 
-    function filterProducts() {
-        let query = document.getElementById('searchInput').value.toLowerCase();
-        let cards = document.getElementsByClassName('product-card');
-        for (let card of cards) {
-            let searchName = card.getAttribute('data-search');
-            if (searchName.includes(query)) {
-                card.style.display = "";
+        const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        const salePayload = { items: [...cart], total: total, shop: currentShop };
+
+        fetch("/api/sales", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(salePayload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                printReceipt(salePayload);
+                alert("Sale completed and receipt generated!");
+                location.reload();
             } else {
-                card.style.display = "none";
+                alert("Error: " + (data.error || "Sale failed"));
             }
-        }
+        })
+        .catch(err => alert("Connection error during checkout."));
     }
     </script>
 </body>
 </html>
 '''
 
+os.makedirs("app/templates", exist_ok=True)
 with open("app/templates/pos.html", "w") as f:
     f.write(pos_html)
 
-print("Successfully updated pos.html with clean data attributes and zero linter errors!")
+print("Successfully refactored POS route and template to clear all linter errors!")

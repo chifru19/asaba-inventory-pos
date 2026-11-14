@@ -161,10 +161,27 @@ def create_app():
         if 'user_id' not in session:
             return redirect(url_for('login'))
         user = User.query.get(session['user_id'])
-        products = Product.query.all()
-        # Determine store name based on username (e.g. shop1, shop2, shop3)
-        store_name = user.username.upper() if user and user.role == 'worker' else 'SHOP 1'
-        return render_template('pos.html', products=products, store_name=store_name, username=user.username if user else 'shop1')
+        raw_products = Product.query.all()
+        username = user.username if user else 'shop1'
+        store_name = username.upper()
+        
+        products = []
+        for p in raw_products:
+            if username == 'shop2':
+                stk = p.shop2_stock
+            elif username == 'shop3':
+                stk = p.shop3_stock
+            else:
+                stk = p.shop1_stock
+                
+            products.append({
+                "id": p.id,
+                "name": p.name,
+                "price": p.price,
+                "stock": stk
+            })
+
+        return render_template('pos.html', products=products, store_name=store_name, username=username)
 
     @app.route('/owner')
     def owner_dashboard():

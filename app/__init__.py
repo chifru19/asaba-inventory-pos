@@ -40,7 +40,7 @@ def create_app():
                 return redirect(url_for('pos'))
         return redirect(url_for('login'))
 
-        @app.route('/login', methods=['GET', 'POST'])
+    @app.route('/login', methods=['GET', 'POST'])
     def login():
         if request.method == 'POST':
             data = request.get_json() or {}
@@ -60,8 +60,6 @@ def create_app():
                 return jsonify({"success": False, "message": "Invalid username or password"}), 400
             return render_template('login.html', error="Invalid username or password")
         return render_template('login.html')
-
-
 
     @app.route('/logout')
     def logout():
@@ -87,7 +85,7 @@ def create_app():
         try:
             data = request.get_json() or {}
             product_id = data.get('product_id')
-            shop = data.get('shop') # 'shop1', 'shop2', 'shop3'
+            shop = data.get('shop')
             qty = int(data.get('qty', 0))
 
             product = Product.query.get(product_id)

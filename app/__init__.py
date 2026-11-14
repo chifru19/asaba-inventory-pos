@@ -313,4 +313,33 @@ def create_app():
                 "timestamp": s.created_at.strftime('%Y-%m-%d %H:%M:%S') if s.created_at else str(s.created_at)
             } for s in sales])
 
+
+    @app.route('/api/restock_product', methods=['POST'])
+    def restock_product():
+        if session.get('role') != 'owner':
+            return jsonify({"error": "Unauthorized"}), 403
+        try:
+            data = request.get_json() or {}
+            product_id = data.get('product_id')
+            qty = int(data.get('qty', 0))
+
+            product = Product.query.get(product_id)
+            if not product:
+                return jsonify({"error": "Product not found"}), 404
+
+            if qty <= 0:
+                return jsonify({"error": "Quantity must be greater than zero"}), 400
+
+            product.main_stock = (product.main_stock or 0) + qty
+            db.session.commit()
+            
+            return jsonify({
+                "success": True, 
+                "message": f"Successfully restocked {qty} units of {product.name}. New Main Stock: {product.main_stock}"
+            })
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+
+
     return app

@@ -16,7 +16,7 @@ def create_app():
     db.init_app(app)
     migrate = Migrate(app, db)
 
-        with app.app_context():
+    with app.app_context():
         db.create_all()
         try:
             if not User.query.filter_by(username='owner').first():
@@ -111,7 +111,7 @@ def create_app():
         try:
             data = request.get_json() or {}
             product_id = data.get('product_id')
-            shop = data.get('shop') # 'shop1', 'shop2', 'shop3'
+            shop = data.get('shop')
             qty = int(data.get('qty', 0))
 
             product = Product.query.get(product_id)
@@ -126,7 +126,6 @@ def create_app():
             if not hasattr(product, shop_attr):
                 return jsonify({"error": "Invalid shop target"}), 400
 
-            # Deduct from main and add to shop
             product.main_stock = main_stk - qty
             current_shop_stk = getattr(product, shop_attr, 0) or 0
             setattr(product, shop_attr, current_shop_stk + qty)
@@ -146,7 +145,7 @@ def create_app():
                 total = data.get('total', 0)
                 shop = data.get('shop', 'shop1')
 
-                sale = Sale(total=total, shop=shop, timestamp=datetime.utcnow())
+                sale = Sale(total_amount=total, store_id=shop, user_id=session.get('user_id', 1), created_at=datetime.utcnow())
                 db.session.add(sale)
 
                 for item in items:
@@ -167,9 +166,9 @@ def create_app():
             sales = Sale.query.order_by(Sale.id.desc()).limit(20).all()
             return jsonify([{
                 "id": s.id,
-                "total": s.total,
-                "shop": s.shop,
-                "timestamp": s.strftime('%Y-%m-%d %H:%M:%S') if hasattr(s, 'strftime') else str(s.timestamp)
+                "total": s.total_amount,
+                "shop": s.store_id,
+                "timestamp": s.created_at.strftime('%Y-%m-%d %H:%M:%S') if s.created_at else str(s.created_at)
             } for s in sales])
 
     return app

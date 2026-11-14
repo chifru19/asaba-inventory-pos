@@ -23,6 +23,10 @@ def create_app():
                 db.session.add(User(username='owner', password_hash=generate_password_hash('owner123'), role='owner'))
             if not User.query.filter_by(username='worker_shop1').first():
                 db.session.add(User(username='worker_shop1', password_hash=generate_password_hash('worker123'), role='worker'))
+            if not User.query.filter_by(username='worker_shop2').first():
+                db.session.add(User(username='worker_shop2', password_hash=generate_password_hash('worker123'), role='worker'))
+            if not User.query.filter_by(username='worker_shop3').first():
+                db.session.add(User(username='worker_shop3', password_hash=generate_password_hash('worker123'), role='worker'))
             if not User.query.filter_by(username='admin').first():
                 db.session.add(User(username='admin', password_hash=generate_password_hash('admin123'), role='owner'))
             db.session.commit()

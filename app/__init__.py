@@ -32,15 +32,88 @@ def create_app():
             db.session.commit()
 
             if Product.query.count() == 0:
-                sample_products = [
-                    Product(name="DEO ROLLON mn", price=800, main_stock=100, shop1_stock=0, shop2_stock=0, shop3_stock=0),
-                    Product(name="DEO ROLLON wn", price=800, main_stock=100, shop1_stock=0, shop2_stock=0, shop3_stock=0),
-                    Product(name="BL-Bodylotion", price=1500, main_stock=200, shop1_stock=0, shop2_stock=0, shop3_stock=0),
-                    Product(name="BL-Bodymilk", price=1500, main_stock=200, shop1_stock=0, shop2_stock=0, shop3_stock=0),
-                    Product(name="BL Body coscos", price=2000, main_stock=150, shop1_stock=0, shop2_stock=0, shop3_stock=0),
-                    Product(name="BL/vital", price=2500, main_stock=100, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                master_products = [
+                    Product(name="DEO ROLLON mn", price=1500, main_stock=72, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="DEO ROLLON WN", price=1500, main_stock=120, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="BL/ urea/ Q10", price=3500, main_stock=70, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="BL-Bcream-Sheabut", price=3500, main_stock=1632, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Bl-Bcream-vanille/SheaB", price=3500, main_stock=96, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="BL-Dgel H&M 750ml", price=2500, main_stock=3060, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="BL men Dusgel 300ml", price=1000, main_stock=86, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Bl Savon H&M", price=1000, main_stock=29, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="BL-Denkmit Duftspary", price=1500, main_stock=612, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="BL-Enthaarungs creame", price=2000, main_stock=1236, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Rossmann facelle clasic", price=1500, main_stock=390, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Cien Spray 4Men", price=1500, main_stock=1460, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="cein seduction spray mn", price=1500, main_stock=220, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="LD-Dentalux-Complex 3", price=1000, main_stock=4200, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Complex 8", price=1500, main_stock=204, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Dentalux 5FACH", price=1500, main_stock=192, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Cien Dgel 300ml 3x colour", price=1500, main_stock=360, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Cein Schauma Shampo", price=1500, main_stock=108, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Cein seduction 3-1 dusgel", price=1500, main_stock=240, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="cien savon", price=2000, main_stock=240, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Cein Blotion Q10", price=3000, main_stock=252, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Ld Mundspulung 750ml", price=2500, main_stock=600, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Doussy 3L", price=6000, main_stock=224, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Kuschelweich 1Ldorsey", price=3500, main_stock=744, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Softland fresh 2L", price=3000, main_stock=120, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="LD-dentalux Tbrush kids-Gc", price=1500, main_stock=1350, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Simpre PLiners 45", price=2000, main_stock=330, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="W5 Glas reinigen", price=1500, main_stock=500, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="W5 Dischwasser", price=1500, main_stock=360, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Hot chocolate", price=6000, main_stock=200, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="chocolate", price=5000, main_stock=200, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Dash powder -100", price=15000, main_stock=300, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Cornflakes 500g", price=3000, main_stock=120, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="LACUNA Blotion", price=2500, main_stock=300, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Biocura Spray M", price=1500, main_stock=600, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Tbrush aldi", price=1200, main_stock=1200, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Tbrush-kids- Aldi good", price=1500, main_stock=882, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Biocura Rollon Mix", price=1200, main_stock=640, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Nivea Bodylotion", price=7000, main_stock=40, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Pure Rollon", price=1200, main_stock=304, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Softrans weichspuler", price=3500, main_stock=240, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Tbrush big", price=1200, main_stock=858, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Irvering 3L H20 bioler", price=12000, main_stock=180, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Irvering plastic mixer", price=20000, main_stock=60, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Irvering Glas mixer 800w", price=25000, main_stock=60, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="irvering 3,2L Rice cooker", price=35000, main_stock=20, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="COMPRESSOR Fridge", price=50000, main_stock=200, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Long Fridge 1.8", price=100000, main_stock=2, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Short Fridge 1.5", price=75000, main_stock=6, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Tabletop", price=50000, main_stock=10, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Gasherd", price=50000, main_stock=1, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="kitchen fridge ecofrost", price=100000, main_stock=1, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Ladder", price=20000, main_stock=5, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Gas herd Beko 5head", price=300000, main_stock=1, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Pressing iron 5+", price=10000, main_stock=100, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="27 zoll monitor", price=25000, main_stock=1, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="glasses", price=5000, main_stock=2, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="H20bioler -used", price=5000, main_stock=1, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Airfryer", price=25000, main_stock=5, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="8 black staple chairs", price=5000, main_stock=8, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="ironing board", price=20000, main_stock=1, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="crunches", price=5000, main_stock=4, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Babywalker", price=20000, main_stock=1, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="child bett", price=15000, main_stock=1, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="child bicycle", price=10000, main_stock=1, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Pots", price=5000, main_stock=10, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Fryingpan", price=5000, main_stock=12, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Used Professional Iron", price=20000, main_stock=1, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Gehrad-age bicycle", price=10000, main_stock=5, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Chaire red 3-2 Vinc", price=150000, main_stock=1, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Brown ch 3-2-1", price=200000, main_stock=1, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="English Material", price=150000, main_stock=1, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="mopo centre table", price=50000, main_stock=1, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Tyres 8*4 800", price=10000, main_stock=600, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Catalan", price=10000, main_stock=2, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="PC Screens 20-22", price=15000, main_stock=143, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="PC Screens 24-26Z VIP red", price=15000, main_stock=61, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="matrasse", price=20000, main_stock=2, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="Carpet 15k", price=20000, main_stock=2, shop1_stock=0, shop2_stock=0, shop3_stock=0),
                 ]
-                db.session.bulk_save_objects(sample_products)
+                db.session.bulk_save_objects(master_products)
                 db.session.commit()
         except Exception as e:
             print("Seeding error:", e)
@@ -140,42 +213,6 @@ def create_app():
             db.session.rollback()
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/api/sales', methods=['GET', 'POST'])
-    def handle_sales():
-        if request.method == 'POST':
-            try:
-                data = request.get_json() or {}
-                items = data.get('items', [])
-                total = data.get('total', 0)
-                shop = data.get('shop', 'shop1')
-
-                sale = Sale(total_amount=total, store_id=shop, user_id=session.get('user_id', 1), created_at=datetime.utcnow())
-                db.session.add(sale)
-
-                for item in items:
-                    p_id = item.get('id')
-                    q = int(item.get('qty', 1))
-                    prod = Product.query.get(p_id)
-                    if prod:
-                        shop_attr = f"{shop}_stock"
-                        current_stk = getattr(prod, shop_attr, 0) or 0
-                        setattr(prod, shop_attr, max(0, current_stk - q))
-
-                db.session.commit()
-                return jsonify({"success": True, "message": "Sale recorded successfully!"})
-            except Exception as e:
-                db.session.rollback()
-                return jsonify({"error": str(e)}), 500
-        else:
-            sales = Sale.query.order_by(Sale.id.desc()).limit(20).all()
-            return jsonify([{
-                "id": s.id,
-                "total": s.total_amount,
-                "shop": s.store_id,
-                "timestamp": s.created_at.strftime('%Y-%m-%d %H:%M:%S') if s.created_at else str(s.created_at)
-            } for s in sales])
-
-
     @app.route('/api/products', methods=['POST'])
     def add_product():
         if session.get('role') != 'owner':
@@ -221,5 +258,39 @@ def create_app():
             db.session.rollback()
             return jsonify({"error": str(e)}), 500
 
-    return app
+    @app.route('/api/sales', methods=['GET', 'POST'])
+    def handle_sales():
+        if request.method == 'POST':
+            try:
+                data = request.get_json() or {}
+                items = data.get('items', [])
+                total = data.get('total', 0)
+                shop = data.get('shop', 'shop1')
 
+                sale = Sale(total_amount=total, store_id=shop, user_id=session.get('user_id', 1), created_at=datetime.utcnow())
+                db.session.add(sale)
+
+                for item in items:
+                    p_id = item.get('id')
+                    q = int(item.get('qty', 1))
+                    prod = Product.query.get(p_id)
+                    if prod:
+                        shop_attr = f"{shop}_stock"
+                        current_stk = getattr(prod, shop_attr, 0) or 0
+                        setattr(prod, shop_attr, max(0, current_stk - q))
+
+                db.session.commit()
+                return jsonify({"success": True, "message": "Sale recorded successfully!"})
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({"error": str(e)}), 500
+        else:
+            sales = Sale.query.order_by(Sale.id.desc()).limit(20).all()
+            return jsonify([{
+                "id": s.id,
+                "total": s.total_amount,
+                "shop": s.store_id,
+                "timestamp": s.created_at.strftime('%Y-%m-%d %H:%M:%S') if s.created_at else str(s.created_at)
+            } for s in sales])
+
+    return app

@@ -30,12 +30,15 @@ def create_app():
             # Auto-seed sample products if table is empty
             if Product.query.count() == 0:
                 sample_products = [
-                    Product(name="DEO ROLLON mn", price=800, main_stock=100, shop1_stock=72, shop2_stock=30, shop3_stock=20),
-                    Product(name="DEO ROLLON wn", price=800, main_stock=100, shop1_stock=120, shop2_stock=40, shop3_stock=25),
-                    Product(name="BL-Bodylotion", price=1500, main_stock=200, shop1_stock=168, shop2_stock=50, shop3_stock=40),
-                    Product(name="BL-Bodymilk", price=1500, main_stock=200, shop1_stock=165, shop2_stock=60, shop3_stock=30),
-                    Product(name="BL Body coscos", price=2000, main_stock=150, shop1_stock=100, shop2_stock=30, shop3_stock=20),
-                    Product(name="BL/vital", price=2500, main_stock=100, shop1_stock=10, shop2_stock=25, shop3_stock=15),
+                    Product(name="DEO ROLLON mn", price=800, main_stock=100, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="DEO ROLLON wn", price=800, main_stock=100, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="BL-Bodylotion", price=1500, main_stock=200, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="BL-Bodymilk", price=1500, main_stock=200, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="BL Body coscos", price=2000, main_stock=150, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                    Product(name="BL/vital", price=2500, main_stock=100, shop1_stock=0, shop2_stock=0, shop3_stock=0),
+                ]
+                db.session.bulk_save_objects(sample_products)
+                db.session.commit()ice=2500, main_stock=100, shop1_stock=10, shop2_stock=25, shop3_stock=15),
                 ]
                 db.session.bulk_save_objects(sample_products)
                 db.session.commit()

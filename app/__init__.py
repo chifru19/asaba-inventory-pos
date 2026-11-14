@@ -16,7 +16,7 @@ def create_app():
     db.init_app(app)
     migrate = Migrate(app, db)
 
-    with app.app_context():
+        with app.app_context():
         db.create_all()
         try:
             if not User.query.filter_by(username='owner').first():
@@ -27,7 +27,6 @@ def create_app():
                 db.session.add(User(username='admin', password_hash=generate_password_hash('admin123'), role='owner'))
             db.session.commit()
 
-            # Auto-seed sample products if table is empty
             if Product.query.count() == 0:
                 sample_products = [
                     Product(name="DEO ROLLON mn", price=800, main_stock=100, shop1_stock=0, shop2_stock=0, shop3_stock=0),
@@ -36,9 +35,6 @@ def create_app():
                     Product(name="BL-Bodymilk", price=1500, main_stock=200, shop1_stock=0, shop2_stock=0, shop3_stock=0),
                     Product(name="BL Body coscos", price=2000, main_stock=150, shop1_stock=0, shop2_stock=0, shop3_stock=0),
                     Product(name="BL/vital", price=2500, main_stock=100, shop1_stock=0, shop2_stock=0, shop3_stock=0),
-                ]
-                db.session.bulk_save_objects(sample_products)
-                db.session.commit()ice=2500, main_stock=100, shop1_stock=10, shop2_stock=25, shop3_stock=15),
                 ]
                 db.session.bulk_save_objects(sample_products)
                 db.session.commit()

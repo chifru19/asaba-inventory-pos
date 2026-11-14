@@ -18,13 +18,16 @@ def create_app():
 
     with app.app_context():
         db.create_all()
-        if not User.query.filter_by(username='owner').first():
-            owner = User(username='owner', password_hash=generate_password_hash('owner123'), role='owner')
-            db.session.add(owner)
-        if not User.query.filter_by(username='worker_shop1').first():
-            worker = User(username='worker_shop1', password_hash=generate_password_hash('worker123'), role='worker')
-            db.session.add(worker)
-        db.session.commit()
+        try:
+            if not User.query.filter_by(username='owner').first():
+                db.session.add(User(username='owner', password_hash=generate_password_hash('owner123'), role='owner'))
+            if not User.query.filter_by(username='worker_shop1').first():
+                db.session.add(User(username='worker_shop1', password_hash=generate_password_hash('worker123'), role='worker'))
+            if not User.query.filter_by(username='admin').first():
+                db.session.add(User(username='admin', password_hash=generate_password_hash('admin123'), role='owner'))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
 
     @app.route('/health')
     def health():
@@ -40,18 +43,8 @@ def create_app():
                 return redirect(url_for('pos'))
         return redirect(url_for('login'))
 
-        @app.route('/login', methods=['GET', 'POST'])
+    @app.route('/login', methods=['GET', 'POST'])
     def login():
-        # Ensure default accounts always exist
-        try:
-            if not User.query.filter_by(username='owner').first():
-                db.session.add(User(username='owner', password_hash=generate_password_hash('owner123'), role='owner'))
-            if not User.query.filter_by(username='worker_shop1').first():
-                db.session.add(User(username='worker_shop1', password_hash=generate_password_hash('worker123'), role='worker'))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-
         if request.method == 'POST':
             username = request.form.get('username')
             password = request.form.get('password')
@@ -67,8 +60,6 @@ def create_app():
             
             return render_template('login.html', error="Invalid username or password")
         return render_template('login.html')
-
-
 
     @app.route('/logout')
     def logout():

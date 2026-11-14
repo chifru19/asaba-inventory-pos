@@ -31,11 +31,11 @@
                         </div>
                         <div class="mt-4 flex items-center gap-2">
                             <div class="flex items-center border border-stone-300 rounded-lg bg-white overflow-hidden">
-                                <button type="button" onclick="adjustQty({{ p.id }}, -1)" class="px-2 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs">-</button>
+                                <button type="button" onclick="adjustQty('{{ p.id }}', -1)" class="px-2 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs">-</button>
                                 <input type="number" id="qty-{{ p.id }}" min="1" value="1" class="w-10 py-1 text-xs font-bold text-center focus:outline-none">
-                                <button type="button" onclick="adjustQty({{ p.id }}, 1)" class="px-2 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs">+</button>
+                                <button type="button" onclick="adjustQty('{{ p.id }}', 1)" class="px-2 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs">+</button>
                             </div>
-                            <button onclick="addToSale({{ p.id }}, '{{ p.name | replace("'", "\'") }}', {{ p.price }})" class="flex-1 bg-teal-950 text-white py-2 px-3 rounded-lg font-bold uppercase text-[10px] tracking-wider hover:bg-teal-900 transition">
+                            <button onclick="addToSale('{{ p.id }}', '{{ p.name }}', {{ p.price }})" class="flex-1 bg-teal-950 text-white py-2 px-3 rounded-lg font-bold uppercase text-[10px] tracking-wider hover:bg-teal-900 transition">
                                 + Add to Sale
                             </button>
                         </div>
@@ -67,137 +67,137 @@
     </div>
 
     <script>
-    let cart = [];
-    const currentShop = "{{ username }}";
-    const storeName = "{{ store_name }}";
+        let cart = [];
+        const currentShop = "{{ username }}";
+        const storeName = "{{ store_name }}";
 
-    function adjustQty(id, delta) {
-        const input = document.getElementById('qty-' + id);
-        let val = parseInt(input.value) || 1;
-        val = Math.max(1, val + delta);
-        input.value = val;
-    }
-
-    function addToSale(id, name, price) {
-        const qtyInput = document.getElementById('qty-' + id);
-        const qty = parseInt(qtyInput.value) || 1;
-        
-        const existing = cart.find(item => item.id === id);
-        if (existing) {
-            existing.qty += qty;
-        } else {
-            cart.push({ id: id, name: name, price: price, qty: qty });
-        }
-        renderCart();
-    }
-
-    function renderCart() {
-        const container = document.getElementById("cartItems");
-        const totalContainer = document.getElementById("cartTotal");
-        
-        if (cart.length === 0) {
-            container.innerHTML = '<p class="text-stone-400 text-xs italic">No items added yet.</p>';
-            totalContainer.innerText = "CFA 0";
-            return;
+        function adjustQty(id, delta) {
+            const input = document.getElementById('qty-' + id);
+            let val = parseInt(input.value) || 1;
+            val = Math.max(1, val + delta);
+            input.value = val;
         }
 
-        let html = "";
-        let total = 0;
-        cart.forEach((item, index) => {
-            const subtotal = item.price * item.qty;
-            total += subtotal;
-            html += '<div class="flex justify-between items-center bg-stone-50 p-3 rounded-xl border border-stone-200 text-xs">' +
-                    '<div>' +
-                    '<p class="font-bold text-stone-800">' + item.name + '</p>' +
-                    '<p class="text-stone-500">' + item.qty + ' x CFA ' + item.price.toLocaleString() + '</p>' +
-                    '</div>' +
-                    '<div class="flex items-center gap-3">' +
-                    '<span class="font-bold text-teal-900">CFA ' + subtotal.toLocaleString() + '</span>' +
-                    '<button onclick="removeFromCart(' + index + ')" class="text-red-500 font-bold hover:text-red-700">✕</button>' +
-                    '</div>' +
-                    '</div>';
-        });
-        container.innerHTML = html;
-        totalContainer.innerText = "CFA " + total.toLocaleString();
-    }
-
-    function removeFromCart(index) {
-        cart.splice(index, 1);
-        renderCart();
-    }
-
-    function printReceipt(saleData) {
-        const win = window.open('', '_blank', 'width=400,height=600');
-        let itemsHtml = '';
-        saleData.items.forEach(item => {
-            itemsHtml += '<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">' +
-                         '<span>' + item.qty + 'x ' + item.name + '</span>' +
-                         '<span>CFA ' + (item.price * item.qty).toLocaleString() + '</span>' +
-                         '</div>';
-        });
-
-        win.document.write(
-            '<html>' +
-            '<head>' +
-            '<title>Receipt - Asaba POS</title>' +
-            '<style>' +
-            'body { font-family: monospace; padding: 20px; font-size: 12px; color: #000; }' +
-            '.center { text-align: center; }' +
-            '.bold { font-weight: bold; }' +
-            '.line { border-bottom: 1px dashed #000; margin: 10px 0; }' +
-            '</style>' +
-            '</head>' +
-            '<body>' +
-            '<div class="center bold" style="font-size: 16px;">ASABA POS (' + storeName + ')</div>' +
-            '<div class="center">Official Sales Receipt</div>' +
-            '<div class="center">' + new Date().toLocaleString() + '</div>' +
-            '<div class="line"></div>' +
-            '<div>' + itemsHtml + '</div>' +
-            '<div class="line"></div>' +
-            '<div style="display: flex; justify-content: space-between;" class="bold">' +
-            '<span>TOTAL:</span>' +
-            '<span>CFA ' + saleData.total.toLocaleString() + '</span>' +
-            '</div>' +
-            '<div class="line"></div>' +
-            '<div class="center" style="margin-top: 15px;">Thank you for your patronage!</div>' +
-            '</body>' +
-            '</html>'
-        );
-        win.document.close();
-        win.focus();
-        setTimeout(() => {
-            win.print();
-            win.close();
-        }, 500);
-    }
-
-    function completeSale() {
-        if (cart.length === 0) {
-            alert("Cart is empty!");
-            return;
-        }
-
-        const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-        const salePayload = { items: [...cart], total: total, shop: currentShop };
-
-        fetch("/api/sales", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify(salePayload)
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                printReceipt(salePayload);
-                alert("Sale completed and receipt generated!");
-                location.reload();
+        function addToSale(id, name, price) {
+            const qtyInput = document.getElementById('qty-' + id);
+            const qty = parseInt(qtyInput.value) || 1;
+            
+            const existing = cart.find(function(item) { return item.id === id; });
+            if (existing) {
+                existing.qty += qty;
             } else {
-                alert("Error: " + (data.error || "Sale failed"));
+                cart.push({ id: id, name: name, price: price, qty: qty });
             }
-        })
-        .catch(err => alert("Connection error during checkout."));
-    }
+            renderCart();
+        }
+
+        function renderCart() {
+            const container = document.getElementById("cartItems");
+            const totalContainer = document.getElementById("cartTotal");
+            
+            if (cart.length === 0) {
+                container.innerHTML = '<p class="text-stone-400 text-xs italic">No items added yet.</p>';
+                totalContainer.innerText = "CFA 0";
+                return;
+            }
+
+            let html = "";
+            let total = 0;
+            cart.forEach(function(item, index) {
+                const subtotal = item.price * item.qty;
+                total += subtotal;
+                html += '<div class="flex justify-between items-center bg-stone-50 p-3 rounded-xl border border-stone-200 text-xs">' +
+                        '<div>' +
+                        '<p class="font-bold text-stone-800">' + item.name + '</p>' +
+                        '<p class="text-stone-500">' + item.qty + ' x CFA ' + item.price.toLocaleString() + '</p>' +
+                        '</div>' +
+                        '<div class="flex items-center gap-3">' +
+                        '<span class="font-bold text-teal-900">CFA ' + subtotal.toLocaleString() + '</span>' +
+                        '<button onclick="removeFromCart(' + index + ')" class="text-red-500 font-bold hover:text-red-700">✕</button>' +
+                        '</div>' +
+                        '</div>';
+            });
+            container.innerHTML = html;
+            totalContainer.innerText = "CFA " + total.toLocaleString();
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            renderCart();
+        }
+
+        function printReceipt(saleData) {
+            const win = window.open('', '_blank', 'width=400,height=600');
+            let itemsHtml = '';
+            saleData.items.forEach(function(item) {
+                itemsHtml += '<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">' +
+                             '<span>' + item.qty + 'x ' + item.name + '</span>' +
+                             '<span>CFA ' + (item.price * item.qty).toLocaleString() + '</span>' +
+                             '</div>';
+            });
+
+            win.document.write(
+                '<html>' +
+                '<head>' +
+                '<title>Receipt - Asaba POS</title>' +
+                '<style>' +
+                'body { font-family: monospace; padding: 20px; font-size: 12px; color: #000; }' +
+                '.center { text-align: center; }' +
+                '.bold { font-weight: bold; }' +
+                '.line { border-bottom: 1px dashed #000; margin: 10px 0; }' +
+                '</style>' +
+                '</head>' +
+                '<body>' +
+                '<div class="center bold" style="font-size: 16px;">ASABA POS (' + storeName + ')</div>' +
+                '<div class="center">Official Sales Receipt</div>' +
+                '<div class="center">' + new Date().toLocaleString() + '</div>' +
+                '<div class="line"></div>' +
+                '<div>' + itemsHtml + '</div>' +
+                '<div class="line"></div>' +
+                '<div style="display: flex; justify-content: space-between;" class="bold">' +
+                '<span>TOTAL:</span>' +
+                '<span>CFA ' + saleData.total.toLocaleString() + '</span>' +
+                '</div>' +
+                '<div class="line"></div>' +
+                '<div class="center" style="margin-top: 15px;">Thank you for your patronage!</div>' +
+                '</body>' +
+                '</html>'
+            );
+            win.document.close();
+            win.focus();
+            setTimeout(function() {
+                win.print();
+                win.close();
+            }, 500);
+        }
+
+        function completeSale() {
+            if (cart.length === 0) {
+                alert("Cart is empty!");
+                return;
+            }
+
+            const total = cart.reduce(function(sum, item) { return sum + (item.price * item.qty); }, 0);
+            const salePayload = { items: cart.slice(), total: total, shop: currentShop };
+
+            fetch("/api/sales", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify(salePayload)
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    printReceipt(salePayload);
+                    alert("Sale completed and receipt generated!");
+                    location.reload();
+                } else {
+                    alert("Error: " + (data.error || "Sale failed"));
+                }
+            })
+            .catch(function(err) { alert("Connection error during checkout."); });
+        }
     </script>
 </body>
 </html>

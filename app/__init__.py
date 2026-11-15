@@ -204,7 +204,7 @@ def create_app():
         return render_template('owner_dashboard.html', products=products, shop_sales=shop_sales, shop_revenue=shop_revenue)
 
     @app.route('/api/allocate_stock', methods=['POST'])
-    def allocate_stock():
+def allocate_stock():
     try:
         data = request.get_json() or {}
         product_id = data.get('product_id')
@@ -212,18 +212,18 @@ def create_app():
         qty = int(data.get('qty', 0))
 
         if qty <= 0:
-        return jsonify({"error": "Transfer quantity must be greater than zero."}), 400
+            return jsonify({"error": "Transfer quantity must be greater than zero."}), 400
 
         product = Product.query.get(product_id)
         if not product:
-        return jsonify({"error": "Product not found"}), 404
+            return jsonify({"error": "Product not found"}), 404
 
         shop_attr = f"{shop}_stock"
         if not hasattr(product, shop_attr):
-        return jsonify({"error": "Invalid shop target"}), 400
+            return jsonify({"error": "Invalid shop target"}), 400
 
         if product.main_stock < qty:
-        return jsonify({"error": f"Insufficient main stock! Available: {product.main_stock}"}), 400
+            return jsonify({"error": f"Insufficient main stock! Available: {product.main_stock}"}), 400
 
         # Deduct from central main stock and add to target shop stock
         product.main_stock -= qty
@@ -235,8 +235,7 @@ def create_app():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
-
-    @app.route('/api/products', methods=['POST'])
+@app.route('/api/products', methods=['POST'])
     def add_product():
         if session.get('role') != 'owner':
             return jsonify({"error": "Unauthorized"}), 403

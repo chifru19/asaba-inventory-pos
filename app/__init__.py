@@ -205,33 +205,36 @@ def create_app():
 
     @app.route('/api/allocate_stock', methods=['POST'])
     def allocate_stock():
-        try:
-            data = request.get_json() or {}
-            product_id = data.get('product_id')
-            shop = data.get('shop')
-            qty = int(data.get('qty', 0))
+    try:
+        data = request.get_json() or {}
+        product_id = data.get('product_id')
+        shop = data.get('shop')
+        qty = int(data.get('qty', 0))
 
-            product = Product.query.get(product_id)
-            if not product:
-                return jsonify({"error": "Product not found"}), 404
+        if qty <= 0:
+            return jsonify({"error": "Transfer quantity must be greater than zero."}), 400
 
-            main_stk = getattr(product, 'main_stock', 0) or 0
-            if main_stk < qty:
-                return jsonify({"error": "Insufficient main stock for transfer!"}), 400
+        product = Product.query.get(product_id)
+        if not product:
+            return jsonify({"error": "Product not found"}), 404
 
-            shop_attr = f"{shop}_stock"
-            if not hasattr(product, shop_attr):
-                return jsonify({"error": "Invalid shop target"}), 400
+        if product.main_stock < qty:
+            return jsonify({"error": f"Insufficient main stock! Available: {product.main_stock}"}), 400
 
-            product.main_stock = main_stk - qty
-            current_shop_stk = getattr(product, shop_attr, 0) or 0
-            setattr(product, shop_attr, current_shop_stk + qty)
+        shop_attr = f"{shop}_stock"
+        if not hasattr(product, shop_attr):
+            return jsonify({"error": "Invalid shop target"}), 400
 
-            db.session.commit()
-            return jsonify({"success": True, "message": f"Successfully transferred {qty} units to {shop.upper()} from Main Stock!"})
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": str(e)}), 500
+        # Deduct from central main stock and add to target shop stock
+        product.main_stock -= qty
+        current_shop_stk = getattr(product, shop_attr, 0) or 0
+        setattr(product, shop_attr, current_shop_stk + qty)
+
+        db.session.commit()
+        return jsonify({"success": True, "message": f"Successfully transferred {qty} units to {shop.upper()}! Main stock updated."})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
     @app.route('/api/products', methods=['POST'])
     def add_product():

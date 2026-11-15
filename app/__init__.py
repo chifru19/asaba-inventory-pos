@@ -138,7 +138,7 @@ def create_app():
         if request.method == 'POST':
             username = request.form.get('username')
             password = request.form.get('password')
-            
+
             user = User.query.filter_by(username=username).first()
             if user and check_password_hash(user.password_hash, password):
                 session['user_id'] = user.id
@@ -147,7 +147,7 @@ def create_app():
                     return redirect(url_for('owner_dashboard'))
                 else:
                     return redirect(url_for('pos'))
-            
+
             return render_template('login.html', error="Invalid username or password")
         return render_template('login.html')
 
@@ -164,7 +164,7 @@ def create_app():
         raw_products = Product.query.all()
         username = user.username if user else 'shop1'
         store_name = username.upper()
-        
+
         products = []
         for p in raw_products:
             if username == 'shop2':
@@ -173,7 +173,7 @@ def create_app():
                 stk = p.shop3_stock
             else:
                 stk = p.shop1_stock
-                
+
             products.append({
                 "id": p.id,
                 "name": p.name,
@@ -188,13 +188,13 @@ def create_app():
         if 'user_id' not in session:
             return redirect(url_for('login'))
         products = Product.query.all()
-        
+
         today = date.today()
         sales_today = Sale.query.filter(db.func.date(Sale.created_at) == today).all()
-        
+
         shop_sales = {'shop1': 0, 'shop2': 0, 'shop3': 0}
         shop_revenue = {'shop1': 0.0, 'shop2': 0.0, 'shop3': 0.0}
-        
+
         for s in sales_today:
             s_shop = getattr(s, 'store_id', 'shop1')
             if s_shop in shop_sales:
@@ -202,7 +202,7 @@ def create_app():
                 shop_revenue[s_shop] += float(s.total_amount or 0)
 
         return render_template('owner_dashboard.html', products=products, shop_sales=shop_sales, shop_revenue=shop_revenue)
-@app.route('/api/products', methods=['POST'])
+    @app.route('/api/products', methods=['POST'])
     def add_product():
         if session.get('role') != 'owner':
             return jsonify({"error": "Unauthorized"}), 403
@@ -239,7 +239,7 @@ def create_app():
             prod = Product.query.get(product_id)
             if not prod:
                 return jsonify({"error": "Product not found"}), 404
-            
+
             db.session.delete(prod)
             db.session.commit()
             return jsonify({"success": True, "message": "Product deleted successfully!"})
@@ -301,7 +301,7 @@ def create_app():
 
             product.main_stock = (product.main_stock or 0) + qty
             db.session.commit()
-            
+
             return jsonify({
                 "success": True, 
                 "message": f"Successfully restocked {qty} units of {product.name}. New Main Stock: {product.main_stock}"

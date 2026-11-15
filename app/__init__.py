@@ -204,7 +204,7 @@ def create_app():
         return render_template('owner_dashboard.html', products=products, shop_sales=shop_sales, shop_revenue=shop_revenue)
 
     @app.route('/api/allocate_stock', methods=['POST'])
-    def allocate_stock():
+def allocate_stock():
     try:
         data = request.get_json() or {}
         product_id = data.get('product_id')
@@ -218,12 +218,12 @@ def create_app():
         if not product:
             return jsonify({"error": "Product not found"}), 404
 
-        if product.main_stock < qty:
-            return jsonify({"error": f"Insufficient main stock! Available: {product.main_stock}"}), 400
-
         shop_attr = f"{shop}_stock"
         if not hasattr(product, shop_attr):
             return jsonify({"error": "Invalid shop target"}), 400
+
+        if product.main_stock < qty:
+            return jsonify({"error": f"Insufficient main stock! Available: {product.main_stock}"}), 400
 
         # Deduct from central main stock and add to target shop stock
         product.main_stock -= qty

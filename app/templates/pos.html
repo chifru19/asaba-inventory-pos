@@ -17,7 +17,15 @@
             <a href="/logout" class="bg-red-100 text-red-700 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-red-200 transition">Logout</a>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+    <!-- Search Bar -->
+    <div class="mb-4">
+        <input type="text" id="productSearch" placeholder="🔍 Search products by name..." 
+               class="w-full px-4 py-2 border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"
+               onkeyup="filterProducts()">
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Inventory Catalog -->
             <div class="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-stone-200 p-6 flex flex-col">
                 <div class="flex justify-between items-center mb-4">
@@ -215,7 +223,33 @@
                 '</div>' +
                 '<div class="line"></div>' +
                 '<div class="center" style="margin-top: 15px;">Thank you for your patronage!</div>' +
-                '</body>' +
+                '
+<script>
+function filterProducts() {
+    let input = document.getElementById('productSearch').value.toLowerCase();
+    let cards = document.querySelectorAll('.product-card');
+    cards.forEach(card => {
+        let name = card.getAttribute('data-name').toLowerCase();
+        if (name.includes(input)) {
+            card.style.display = "";
+        } else {
+            card.style.display = "none";
+        }
+    });
+}
+
+function changeQty(productId, delta) {
+    let qtyInput = document.getElementById('qty-' + productId);
+    if (qtyInput) {
+        let current = parseInt(qtyInput.value) || 1;
+        let updated = current + delta;
+        if (updated < 1) updated = 1;
+        qtyInput.value = updated;
+    }
+}
+</script>
+
+</body>' +
                 '</html>'
             );
             win.document.close();
@@ -254,5 +288,31 @@
             .catch(function(err) { alert("Connection error during checkout."); });
         }
     </script>
+
+<script>
+function filterProducts() {
+    let input = document.getElementById('productSearch').value.toLowerCase();
+    let cards = document.querySelectorAll('.product-card');
+    cards.forEach(card => {
+        let name = card.getAttribute('data-name').toLowerCase();
+        if (name.includes(input)) {
+            card.style.display = "";
+        } else {
+            card.style.display = "none";
+        }
+    });
+}
+
+function changeQty(productId, delta) {
+    let qtyInput = document.getElementById('qty-' + productId);
+    if (qtyInput) {
+        let current = parseInt(qtyInput.value) || 1;
+        let updated = current + delta;
+        if (updated < 1) updated = 1;
+        qtyInput.value = updated;
+    }
+}
+</script>
+
 </body>
 </html>

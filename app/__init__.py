@@ -344,4 +344,16 @@ def create_app():
             db.session.rollback()
             return jsonify({"error": str(e)}), 500
 
+
+    def get_stock(product, store_id):
+        if store_id == 'shop1':
+            return getattr(product, 'shop1_stock', getattr(product, 'stock_shop1', getattr(product, 'main_stock', 0))) or 0
+        elif store_id == 'shop2':
+            return getattr(product, 'shop2_stock', getattr(product, 'stock_shop2', getattr(product, 'main_stock', 0))) or 0
+        elif store_id == 'shop3':
+            return getattr(product, 'shop3_stock', getattr(product, 'stock_shop3', getattr(product, 'main_stock', 0))) or 0
+        return getattr(product, 'main_stock', 0) or 0
+
+    app.jinja_env.globals['get_stock'] = get_stock
+
     return app

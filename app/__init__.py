@@ -203,7 +203,7 @@ def create_app():
 
         return render_template('owner_dashboard.html', products=products, shop_sales=shop_sales, shop_revenue=shop_revenue)
 
-        @app.route('/api/allocate_stock', methods=['POST'])
+    @app.route('/api/allocate_stock', methods=['POST'])
     def allocate_stock():
     try:
         data = request.get_json() or {}

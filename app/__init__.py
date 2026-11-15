@@ -205,7 +205,7 @@ def create_app():
 
     @app.route('/api/allocate_stock', methods=['POST'])
     def allocate_stock():
-        try:
+    try:
         data = request.get_json() or {}
         product_id = data.get('product_id')
         shop = data.get('shop')
@@ -232,7 +232,7 @@ def create_app():
 
         db.session.commit()
         return jsonify({"success": True, "message": f"Successfully transferred {qty} units to {shop.upper()}! Main stock updated."})
-        except Exception as e:
+    except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 

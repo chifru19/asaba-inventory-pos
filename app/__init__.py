@@ -167,12 +167,12 @@ def create_app():
 
         products = []
         for p in raw_products:
-            if '2' in username:
-                stk = getattr(p, 'shop2_stock', 0)
-            elif '3' in username:
-                stk = getattr(p, 'shop3_stock', 0)
+            if '3' in username:
+                stk = getattr(p, 'shop3_stock', 0) or getattr(p, 'stock', 0) or 5
+            elif '2' in username:
+                stk = getattr(p, 'shop2_stock', 0) or getattr(p, 'stock', 0) or 5
             else:
-                stk = getattr(p, 'shop1_stock', 0)
+                stk = getattr(p, 'shop1_stock', 0) or getattr(p, 'stock', 0) or 5
 
             products.append({
                 "id": p.id,

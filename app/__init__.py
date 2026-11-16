@@ -149,8 +149,8 @@ def create_app():
                 else:
                     return redirect(url_for('pos'))
 
-            return render_template('login.html', error="Invalid username or password")
-        return render_template('login.html')
+    return render_template('login.html', error="Invalid username or password")
+    return render_template('login.html')
 
     @app.route('/logout')
     def logout():

@@ -140,7 +140,8 @@ def create_app():
             password = request.form.get('password')
 
             user = User.query.filter_by(username=username).first()
-            if user and check_password_hash(user.password_hash, password):
+            pwd_field = getattr(user, 'password_hash', None) or getattr(user, 'password', None)
+        if user and pwd_field and check_password_hash(pwd_field, password):
                 session['user_id'] = user.id
                 session['role'] = user.role
                 if user.role == 'owner':

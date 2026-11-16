@@ -149,7 +149,6 @@ def create_app():
                 else:
                     return redirect(url_for('pos'))
 
-    @app.route('/logout')
     def logout():
         session.clear()
         return redirect(url_for('login'))

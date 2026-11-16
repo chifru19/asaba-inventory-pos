@@ -149,8 +149,6 @@ def create_app():
                 else:
                     return redirect(url_for('pos'))
 
-    return render_template('login.html', error="Invalid username or password")
-    return render_template('login.html')
 
     @app.route('/logout')
     def logout():
@@ -182,7 +180,6 @@ def create_app():
                 "stock": stk
             })
 
-        return render_template('pos.html', products=products, store_name=store_name, username=username)
 
     @app.route('/owner')
     def owner_dashboard():
@@ -202,7 +199,6 @@ def create_app():
                 shop_sales[s_shop] += 1
                 shop_revenue[s_shop] += float(s.total_amount or 0)
 
-        return render_template('owner_dashboard.html', products=products, shop_sales=shop_sales, shop_revenue=shop_revenue)
     @app.route('/api/products', methods=['POST'])
     def add_product():
         if session.get('role') != 'owner':

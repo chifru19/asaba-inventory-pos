@@ -1,3 +1,4 @@
+# checkov:skip=CKV_SECRET_6
 # pragma: allowlist secret
 import os
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session

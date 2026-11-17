@@ -1,6 +1,7 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
+from app.models import db, Product, StoreStock, Sale, SaleItem
+
 from app.extensions import db
-from app.models import User, Product, Sale
 from datetime import datetime
 
 main_bp = Blueprint('main', __name__)

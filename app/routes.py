@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
 from app.models import db, Product, StoreStock, Sale, SaleItem
 
+
 from app.extensions import db
 from datetime import datetime
 
@@ -196,7 +197,6 @@ def transfer_stock():
         shop_name = data.get('shop_name')
         quantity = int(data.get('quantity', 0))
 
-        from app.models import Product, StoreStock # Adjust imports based on your structure
         # Find product in main stock
         product = Product.query.get(product_id)
         if not product or product.main_stock < quantity:
@@ -226,7 +226,6 @@ def handle_stock_transfer():
         shop_name = data.get('shop_name') or data.get('store_id')
         quantity = int(data.get('quantity', 0))
 
-        from app.models import Product, StoreStock, db
         product = Product.query.get(product_id)
         if not product:
             return jsonify({'success': False, 'message': 'Product not found'}), 404

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Dashboard (Multi-Store Admin)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .btn-primary { background-color: #4f46e5; color: white; transition: background 0.2s; }
+        .btn-primary:hover { background-color: #4338ca; }
+        .table-header { background-color: #f1f5f9; font-weight: 600; color: #475569; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+    <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- Header & Logout -->
+        <div class="flex justify-between items-center bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900">Owner Dashboard (Multi-Store Admin)</h1>
+                <p class="text-sm text-slate-500">Manage central warehouse, inventory transfers, and track daily sales.</p>
+            </div>
+            <button onclick="alert('Logged out successfully')" class="text-sm font-semibold text-rose-600 hover:text-rose-800 transition">Logout</button>
+        </div>
+
+        <!-- Sales Metrics Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="card p-6 border-l-4 border-indigo-500">
+                <h3 class="text-sm font-semibold text-slate-500 uppercase">Shop 1 Sales Today</h3>
+                <p id="shop1-orders" class="text-2xl font-bold text-slate-900 mt-2">0 orders</p>
+                <p id="shop1-revenue" class="text-sm font-medium text-emerald-600 mt-1">Revenue: XAF 0</p>
+            </div>
+            <div class="card p-6 border-l-4 border-blue-500">
+                <h3 class="text-sm font-semibold text-slate-500 uppercase">Shop 2 Sales Today</h3>
+                <p id="shop2-orders" class="text-2xl font-bold text-slate-900 mt-2">0 orders</p>
+                <p id="shop2-revenue" class="text-sm font-medium text-emerald-600 mt-1">Revenue: XAF 0</p>
+            </div>
+            <div class="card p-6 border-l-4 border-purple-500">
+                <h3 class="text-sm font-semibold text-slate-500 uppercase">Shop 3 Sales Today</h3>
+                <p id="shop3-orders" class="text-2xl font-bold text-slate-900 mt-2">0 orders</p>
+                <p id="shop3-revenue" class="text-sm font-medium text-emerald-600 mt-1">Revenue: XAF 0</p>
+            </div>
+        </div>
+
+        <!-- Forms Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <!-- Add New Product -->
+            <div class="card p-6">
+                <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2 mb-2">
+                    <span>➕</span> Add New Product to Main Stock
+                </h2>
+                <p class="text-xs text-slate-500 mb-4">Create a new item, set its retail price, and stock initial quantities in the central warehouse.</p>
+                <form id="addProductForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase">Product Name</label>
+                        <input type="text" id="newProductName" required placeholder="e.g. Body Spray" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase">Price (XAF)</label>
+                            <input type="number" id="newProductPrice" required min="0" placeholder="1000" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase">Initial Main Stock</label>
+                            <input type="number" id="newProductStock" required min="0" placeholder="100" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full btn-primary font-semibold py-2.5 rounded-lg text-sm shadow-sm">Add Product ➔</button>
+                </form>
+            </div>
+
+            <!-- Restock Existing Main Stock -->
+            <div class="card p-6">
+                <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2 mb-2">
+                    <span>🔄</span> Restock Existing Main Stock
+                </h2>
+                <p class="text-xs text-slate-500 mb-4">Select an existing product from your central inventory and add newly received shipment quantities.</p>
+                <form id="restockForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase">Select Existing Product</label>
+                        <select id="restockProductSelect" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                            <!-- Populated via JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase">Quantity Received</label>
+                        <input type="number" id="restockQty" required min="1" placeholder="50" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <button type="submit" class="w-full btn-primary font-semibold py-2.5 rounded-lg text-sm shadow-sm mt-6">Restock Main Stock ➔</button>
+                </form>
+            </div>
+
+        </div>
+
+        <!-- Central Stock Transfer to Shops -->
+        <div class="card p-6">
+            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2 mb-2">
+                <span>📦</span> Central Stock Transfer to Shops
+            </h2>
+            <p class="text-xs text-slate-500 mb-4">Select an item from main inventory, deduct from warehouse, and instantly distribute quantities to Shop 1, Shop 2, or Shop 3.</p>
+            <form id="transferForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase">Select Product</label>
+                    <select id="transferProductSelect" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                        <!-- Populated via JS -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase">Destination Shop</label>
+                    <select id="transferShopSelect" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                        <option value="shop1">Shop 1</option>
+                        <option value="shop2">Shop 2</option>
+                        <option value="shop3">Shop 3</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase">Quantity to Transfer</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="transferQty" required min="1" placeholder="10" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button type="submit" class="btn-primary px-5 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">Transfer</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Inventory Table -->
+        <div class="card overflow-hidden">
+            <div class="p-6 border-b border-slate-200 flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Central Stock & Multi-Shop Allocation</h2>
+                    <p class="text-xs text-slate-500">Real-time breakdown of all central inventory and store distributions.</p>
+                </div>
+                <button onclick="resetData()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold border border-rose-200 px-3 py-1.5 rounded-lg">Reset Default Inventory</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="table-header">
+                            <th class="p-4">Item Name</th>
+                            <th class="p-4 text-center">Main Stock</th>
+                            <th class="p-4 text-right">Price (XAF)</th>
+                            <th class="p-4 text-center">Shop 1 Stock</th>
+                            <th class="p-4 text-center">Shop 2 Stock</th>
+                            <th class="p-4 text-center">Shop 3 Stock</th>
+                            <th class="p-4 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody" class="divide-y divide-slate-200 text-sm">
+                        <!-- Populated via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const initialInventory = [
+            { name: "DEO ROLLON mn", main: 72, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "DEO ROLLON WN", main: 120, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "BL/ urea/ Q10", main: 70, price: 3500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "BL-Bcream-Sheabut", main: 1632, price: 3500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Bl-Bcream-vanille/SheaB", main: 96, price: 3500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "BL-Dgel H&M 750ml", main: 3060, price: 2500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "BL men Dusgel 300ml", main: 86, price: 1000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Bl Savon H&M", main: 29, price: 1000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "BL-Denkmit Duftspary", main: 612, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "BL-Enthaarungs creame", main: 1236, price: 2000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Rossmann facelle clasic", main: 390, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Cien Spray 4Men", main: 1460, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "cein seduction spray mn", main: 220, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "LD-Dentalux-Complex 3", main: 4200, price: 1000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Complex 8", main: 204, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Dentalux 5FACH", main: 192, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Cien Dgel 300ml 3x colour", main: 360, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Cein Schauma Shampo", main: 108, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Cein seduction 3-1 dusgel", main: 240, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "cien savon", main: 240, price: 2000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Cein Blotion Q10", main: 252, price: 3000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Ld Mundspulung 750ml", main: 600, price: 2500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Doussy 3L", main: 224, price: 6000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Kuschelweich 1Ldorsey", main: 744, price: 3500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Softland fresh 2L", main: 120, price: 3000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "LD-dentalux Tbrush kids-Gc", main: 1350, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Simpre PLiners 45", main: 330, price: 2000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "W5 Glas reinigen", main: 500, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "W5 Dischwasser", main: 360, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Hot chocolate", main: 200, price: 6000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "chocolate", main: 200, price: 5000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Dash powder -100", main: 300, price: 15000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Cornflakes 500g", main: 120, price: 3000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "LACUNA Blotion", main: 300, price: 2500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Biocura Spray M", main: 600, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Tbrush aldi", main: 1200, price: 1200, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Tbrush-kids- Aldi good", main: 882, price: 1500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Biocura Rollon Mix", main: 640, price: 1200, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Nivea Bodylotion", main: 40, price: 7000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Pure Rollon", main: 304, price: 1200, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Softrans weichspuler", main: 240, price: 3500, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Tbrush big", main: 858, price: 1200, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Irvering 3L H20 bioler", main: 180, price: 12000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Irvering plastic mixer", main: 60, price: 20000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Irvering Glas mixer 800w", main: 60, price: 25000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "irvering 3,2L Rice cooker", main: 20, price: 35000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "COMPRESSOR Fridge", main: 200, price: 50000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Long Fridge 1.8", main: 2, price: 100000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Short Fridge 1.5", main: 6, price: 75000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Tabletop", main: 10, price: 50000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Gasherd", main: 1, price: 50000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "kitchen fridge ecofrost", main: 1, price: 100000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Ladder", main: 5, price: 20000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Gas herd Beko 5head", main: 1, price: 300000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Pressing iron 5+", main: 100, price: 10000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "27 zoll monitor", main: 1, price: 25000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "glasses", main: 2, price: 5000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "H20bioler -used", main: 1, price: 5000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Airfryer", main: 5, price: 25000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "8 black staple chairs", main: 8, price: 5000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "ironing board", main: 1, price: 20000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "crunches", main: 4, price: 5000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Babywalker", main: 1, price: 20000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "child bett", main: 1, price: 15000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "child bicycle", main: 1, price: 10000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Pots", main: 10, price: 5000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Fryingpan", main: 12, price: 5000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Used Professional Iron", main: 1, price: 20000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Gehrad-age bicycle", main: 5, price: 10000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Chaire red 3-2 Vinc", main: 1, price: 150000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Brown ch 3-2-1", main: 1, price: 200000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "English Material", main: 1, price: 150000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "mopo centre table", main: 1, price: 50000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Tyres 8*4 800", main: 600, price: 10000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Catalan", main: 2, price: 10000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "PC Screens 20-22", main: 143, price: 15000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "PC Screens 24-26Z VIP red", main: 61, price: 15000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "matrasse", main: 2, price: 20000, shop1: 0, shop2: 0, shop3: 0 },
+            { name: "Carpet 15k", main: 2, price: 20000, shop1: 0, shop2: 0, shop3: 0 }
+        ];
+
+        let inventory = JSON.parse(localStorage.getItem('owner_inventory')) || initialInventory;
+
+        function saveAndRender() {
+            localStorage.setItem('owner_inventory', JSON.stringify(inventory));
+            renderDashboard();
+        }
+
+        function renderDashboard() {
+            const tbody = document.getElementById('inventoryTableBody');
+            const restockSelect = document.getElementById('restockProductSelect');
+            const transferSelect = document.getElementById('transferProductSelect');
+            
+            tbody.innerHTML = '';
+            restockSelect.innerHTML = '';
+            transferSelect.innerHTML = '';
+
+            inventory.forEach((item, index) => {
+                // Table Row
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="p-4 font-medium text-slate-900">${item.name}</td>
+                    <td class="p-4 text-center font-semibold text-indigo-600">${item.main.toLocaleString()}</td>
+                    <td class="p-4 text-right text-slate-700">${item.price.toLocaleString()}</td>
+                    <td class="p-4 text-center text-slate-600">${item.shop1}</td>
+                    <td class="p-4 text-center text-slate-600">${item.shop2}</td>
+                    <td class="p-4 text-center text-slate-600">${item.shop3}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="deleteProduct(${index})" class="text-xs text-rose-600 hover:text-rose-800 font-medium bg-rose-50 px-2.5 py-1 rounded">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+
+                // Restock Select Option
+                const restockOpt = document.createElement('option');
+                restockOpt.value = index;
+                restockOpt.textContent = `${item.name} (Main: ${item.main})`;
+                restockSelect.appendChild(restockOpt);
+
+                // Transfer Select Option
+                const transferOpt = document.createElement('option');
+                transferOpt.value = index;
+                transferOpt.textContent = `${item.name} (Main: ${item.main})`;
+                transferSelect.appendChild(transferOpt);
+            });
+        }
+
+        // Add New Product
+        document.getElementById('addProductForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('newProductName').value.trim();
+            const price = parseFloat(document.getElementById('newProductPrice').value);
+            const main = parseInt(document.getElementById('newProductStock').value);
+
+            if(!name || isNaN(price) || isNaN(main)) return;
+
+            inventory.push({ name, price, main, shop1: 0, shop2: 0, shop3: 0 });
+            saveAndRender();
+            this.reset();
+            alert('Product added successfully to Main Stock!');
+        });
+
+        // Restock Existing Product
+        document.getElementById('restockForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const index = document.getElementById('restockProductSelect').value;
+            const qty = parseInt(document.getElementById('restockQty').value);
+
+            if(index === "" || isNaN(qty) || qty <= 0) return;
+
+            inventory[index].main += qty;
+            saveAndRender();
+            this.reset();
+            alert('Main stock restocked successfully!');
+        });
+
+        // Transfer Stock to Shop
+        document.getElementById('transferForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const index = document.getElementById('transferProductSelect').value;
+            const shop = document.getElementById('transferShopSelect').value;
+            const qty = parseInt(document.getElementById('transferQty').value);
+
+            if(index === "" || isNaN(qty) || qty <= 0) return;
+
+            if(inventory[index].main < qty) {
+                alert('Error: Not enough quantity in Main Stock for this transfer!');
+                return;
+            }
+
+            inventory[index].main -= qty;
+            inventory[index][shop] += qty;
+
+            saveAndRender();
+            this.reset();
+            alert(`Successfully transferred ${qty} units to ${shop.toUpperCase()}!`);
+        });
+
+        function deleteProduct(index) {
+            if(confirm(`Are you sure you want to delete "${inventory[index].name}"?`)) {
+                inventory.splice(index, 1);
+                saveAndRender();
+            }
+        }
+
+        function resetData() {
+            if(confirm("Reset all inventory back to initial default data?")) {
+                localStorage.removeItem('owner_inventory');
+                inventory = JSON.parse(JSON.stringify(initialInventory));
+                saveAndRender();
+            }
+        }
+
+        // Initial Load
+        renderDashboard();
+    </script>
+</body>
+</html>

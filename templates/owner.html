@@ -43,7 +43,7 @@
 
 <div class="card">
     <h3>Add New Product</h3>
-    <form method="POST" method="POST" action="/api/restock_product" action="{{ url_for('main.owner') }}" method="POST">
+    <form method="POST" action="/api/restock_product">
         <input type="hidden" name="action" value="add_product">
         <input type="text" name="name" placeholder="Product Name" required>
         <input type="text" name="sku" placeholder="SKU" required>
@@ -81,7 +81,7 @@
                 <td>{{ product.initial_stock if product.initial_stock is defined else product.stock_quantity }}</td>
                 <td>{{ product.stock_quantity }}</td>
                 <td>
-                    <form method="POST" action="{{ url_for('main.owner') }}" method="POST" class="inline-form">
+                    <form method="POST" method="POST" class="inline-form">
                         <input type="hidden" name="action" value="update_product">
                         <input type="hidden" name="product_id" value="{{ product.id }}">
                         <input type="number" name="selling_price" value="{{ product.selling_price }}" step="0.01" style="width: 75px;">

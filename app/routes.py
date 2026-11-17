@@ -215,3 +215,34 @@ def transfer_stock():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/transfer_stock', methods=['POST'])
+@app.route('/api/transfer_stock', methods=['POST'])
+def handle_stock_transfer():
+    try:
+        data = request.get_json() or request.form
+        product_id = data.get('product_id') or data.get('productId')
+        shop_name = data.get('shop_name') or data.get('store_id')
+        quantity = int(data.get('quantity', 0))
+
+        from app.models import Product, StoreStock, db
+        product = Product.query.get(product_id)
+        if not product:
+            return jsonify({'success': False, 'message': 'Product not found'}), 404
+            
+        if product.main_stock < quantity:
+            return jsonify({'success': False, 'message': 'Insufficient main stock'}), 400
+
+        product.main_stock -= quantity
+
+        store_stock = StoreStock.query.filter_by(product_id=product_id, store_id=shop_name).first()
+        if store_stock:
+            store_stock.quantity += quantity
+        else:
+            new_store_stock = StoreStock(product_id=product_id, store_id=shop_name, quantity=quantity)
+            db.session.add(new_store_stock)
+
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500

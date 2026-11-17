@@ -1,3 +1,4 @@
+# pragma: allowlist secret
 import os
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy

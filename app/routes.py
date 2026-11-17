@@ -283,6 +283,22 @@ def api_restock_product():
 def restock_product():
     try:
         product_id = request.form.get('product_id')
+        qty = int(request.form.get('qty') or 0)
+        product = Product.query.get(product_id)
+        if product:
+            product.main_stock = (product.main_stock or 0) + qty
+            db.session.commit()
+            flash(f'Successfully restocked {qty} units of {product.name}!', 'success')
+        else:
+            flash('Product not found.', 'danger')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('main.owner_dashboard'))
+@login_required
+def restock_product():
+    try:
+        product_id = request.form.get('product_id')
         qty = int(request.form.get('qty', 0))
 
         product = Product.query.get(product_id)

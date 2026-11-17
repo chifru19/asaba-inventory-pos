@@ -44,16 +44,17 @@ def create_app():
             password = request.form.get('password')
 
             user = User.query.filter_by(username=username).first()
-            pwd_field = getattr(user, 'password_hash', None) or getattr(user, 'password', None)
-            if user and pwd_field and check_password_hash(pwd_field, password):
-                session['user_id'] = user.id
-                session['role'] = user.role
-                session['store_id'] = user.store_id
-                session['shop'] = user.store_id
-                if user.role == 'owner':
-                    return redirect(url_for('owner_dashboard'))
-                else:
-                    return redirect(url_for('pos'))
+            if user:
+                pwd_field = getattr(user, 'password_hash', None) or getattr(user, 'password', None)
+                if pwd_field and check_password_hash(pwd_field, password):
+                    session['user_id'] = user.id
+                    session['role'] = user.role
+                    session['store_id'] = getattr(user, 'store_id', 'shop1')
+                    session['shop'] = getattr(user, 'store_id', 'shop1')
+                    if user.role == 'owner':
+                        return redirect(url_for('owner_dashboard'))
+                    else:
+                        return redirect(url_for('pos'))
             return render_template('login.html', error="Invalid username or password")
         return render_template('login.html')
 

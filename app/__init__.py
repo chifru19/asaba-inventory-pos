@@ -119,11 +119,9 @@ def create_app():
             print("Seeding error:", e)
             db.session.rollback()
 
-    @app.route('/health')
     def health():
         return {"status": "healthy"}, 200
 
-    @app.route('/')
     def index():
         if 'user_id' in session:
             user = User.query.get(session['user_id'])
@@ -133,8 +131,6 @@ def create_app():
                 return redirect(url_for('pos'))
         return redirect(url_for('login'))
 
-    @app.route('/login', methods=['GET', 'POST'])
-    def login():
         if request.method == 'POST':
             username = request.form.get('username')
             password = request.form.get('password')
@@ -153,7 +149,6 @@ def create_app():
         session.clear()
         return redirect(url_for('login'))
 
-    @app.route('/pos')
     def pos():
         if 'user_id' not in session:
             return redirect(url_for('login'))
@@ -179,7 +174,6 @@ def create_app():
             })
 
 
-    @app.route('/owner')
     def owner_dashboard():
         if 'user_id' not in session:
             return redirect(url_for('login'))
@@ -197,7 +191,6 @@ def create_app():
                 shop_sales[s_shop] += 1
                 shop_revenue[s_shop] += float(s.total_amount or 0)
 
-    @app.route('/api/products', methods=['POST'])
     def add_product():
         if session.get('role') != 'owner':
             return jsonify({"error": "Unauthorized"}), 403
@@ -226,7 +219,6 @@ def create_app():
             db.session.rollback()
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/api/products/<int:product_id>', methods=['DELETE'])
     def delete_product(product_id):
         if session.get('role') != 'owner':
             return jsonify({"error": "Unauthorized"}), 403
@@ -242,7 +234,6 @@ def create_app():
             db.session.rollback()
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/api/sales', methods=['GET', 'POST'])
     def handle_sales():
         if request.method == 'POST':
             try:
@@ -278,7 +269,6 @@ def create_app():
             } for s in sales])
 
 
-    @app.route('/api/restock_product', methods=['POST'])
     def restock_product():
         if session.get('role') != 'owner':
             return jsonify({"error": "Unauthorized"}), 403
@@ -307,7 +297,6 @@ def create_app():
 
 
 
-    @app.route('/api/allocate_stock', methods=['POST'])
     def allocate_stock():
         try:
             data = request.get_json() or {}

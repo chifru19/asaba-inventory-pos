@@ -67,15 +67,26 @@ def pos():
 @main_bp.route('/owner')
 @main_bp.route('/owner_dashboard')
 def owner_dashboard():
-    if 'user_id' not in session or session.get('role') != 'owner':
-        return redirect(url_for('main.login'))
+    try:
+        if 'user_id' not in session or session.get('role') != 'owner':
+            return redirect(url_for('main.login'))
+            
+        selected_store = request.args.get('store_id', 'shop1')
+        products = Product.query.filter_by(store_id=selected_store).all()
+        sales = Sale.query.filter_by(store_id=selected_store).all()
+        total_sales = sum(s.total_amount for s in sales) if sales else 0
         
-    selected_store = request.args.get('store_id', 'shop1')
-    products = Product.query.filter_by(store_id=selected_store).all()
-    sales = Sale.query.filter_by(store_id=selected_store).all()
-    total_sales = sum(s.total_amount for s in sales)
-    
-    return render_template('owner_dashboard.html', products=products, sales=sales, total_sales=total_sales, current_store=selected_store, selected_store=selected_store)
+        return render_template(
+            'owner_dashboard.html', 
+            products=products, 
+            sales=sales, 
+            total_sales=total_sales, 
+            current_store=selected_store, 
+            selected_store=selected_store
+        )
+    except Exception as e:
+        print(f"Error in owner_dashboard: {e}")
+        return redirect(url_for('main.login'))
 
 @main_bp.route('/api/sell', methods=['POST'])
 def sell():

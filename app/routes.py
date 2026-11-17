@@ -129,23 +129,6 @@ def add_product():
     db.session.commit()
     return jsonify({'success': True, 'message': 'Product added successfully'})
 
-@main_bp.route('/api/restock_product', methods=['POST'])
-def api_restock_product():
-    try:
-        data = request.get_json(silent=True) or request.form
-        product_id = data.get('product_id') or data.get('productId') or data.get('product')
-        quantity = int(data.get('quantity', 0))
-
-        product = Product.query.get(product_id)
-        if not product:
-            return jsonify({'success': False, 'message': 'Product not found'}), 404
-
-        product.main_stock = (product.main_stock or 0) + quantity
-        db.session.commit()
-        return jsonify({'success': True})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
 
 @main_bp.route('/api/transfer_stock', methods=['POST'])
 def api_transfer_stock():
@@ -234,3 +217,33 @@ def complete_sale():
     session.pop('cart', None)
     session.modified = True
     return redirect(url_for('main.pos'))
+
+
+@main_bp.route('/api/restock_product', methods=['POST'])
+@login_required
+def api_restock_product():
+    try:
+        data = request.get_json(silent=True)
+        if not data:
+            data = request.form
+
+        product_id = data.get('product_id')
+        qty = int(data.get('qty') or data.get('quantity') or 0)
+
+        product = Product.query.get(product_id)
+        if not product:
+            return jsonify({'success': False, 'error': 'Product not found'}), 404
+
+        product.main_stock = (product.main_stock or 0) + qty
+        db.session.commit()
+
+        if request.is_json:
+            return jsonify({'success': True, 'message': f'Successfully restocked {qty} units of {product.name}!'})
+        
+        flash(f'Successfully restocked {qty} units!', 'success')
+        return redirect(url_for('main.owner_dashboard'))
+    except Exception as e:
+        db.session.rollback()
+        if request.is_json:
+            return jsonify({'success': False, 'error': str(e)}), 500
+        return str(e), 500

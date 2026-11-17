@@ -42,6 +42,9 @@ def login():
 
 @main_bp.route('/pos')
 def pos():
+    if 'user_id' not in session:
+        return redirect(url_for('main.login'))
+        
     store_id = session.get('shop') or session.get('store_id') or 'shop1'
     session['shop'] = store_id
     
@@ -66,10 +69,12 @@ def pos():
 def owner_dashboard():
     if 'user_id' not in session or session.get('role') != 'owner':
         return redirect(url_for('main.login'))
+        
     selected_store = request.args.get('store_id', 'shop1')
     products = Product.query.filter_by(store_id=selected_store).all()
     sales = Sale.query.filter_by(store_id=selected_store).all()
     total_sales = sum(s.total_amount for s in sales)
+    
     return render_template('owner_dashboard.html', products=products, sales=sales, total_sales=total_sales, current_store=selected_store, selected_store=selected_store)
 
 @main_bp.route('/api/sell', methods=['POST'])

@@ -258,3 +258,19 @@ def restock_product():
         flash(f'Error during restock: {str(e)}', 'danger')
 
     return redirect(url_for('main.owner_dashboard'))
+@main_bp.route('/restock', methods=['POST'])
+@login_required
+def restock_product():
+    try:
+        data = request.get_json(silent=True) or request.form
+        product_id = data.get('product_id')
+        qty = int(data.get('qty') or data.get('quantity') or 0)
+        product = Product.query.get(product_id)
+        if product:
+            product.main_stock = (product.main_stock or 0) + qty
+            db.session.commit()
+            flash(f'Restocked {qty} units!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(str(e), 'danger')
+    return redirect(url_for('main.owner_dashboard'))

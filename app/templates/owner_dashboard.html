@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Owner Dashboard - Asaba POS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    
 </head>
 <body class="bg-stone-100 min-h-screen font-sans">
     <div class="max-w-7xl mx-auto p-4 md:p-8">
@@ -155,111 +155,6 @@
         </div>
     </div>
 
-    <script>
-    function addNewProduct() {
-        const name = document.getElementById("newProductName").value.trim();
-        const price = parseFloat(document.getElementById("newProductPrice").value);
-        const main_stock = parseInt(document.getElementById("newProductStock").value);
-
-        if (!name || isNaN(price) || price <= 0) {
-            alert("Please provide a valid product name and price.");
-            return;
-        }
-
-        fetch("/api/products", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ name: name, price: price, main_stock: main_stock })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                location.reload();
-            } else {
-                alert("Error: " + (data.error || "Failed to add product"));
-            }
-        })
-        .catch(err => alert("Connection error while adding product."));
-    }
-
-    function deleteProduct(productId, productName) {
-        if (!confirm(`Are you sure you want to delete "${productName}" from the system?`)) {
-            return;
-        }
-
-        fetch(`/api/products/${productId}`, {
-            method: "DELETE",
-            credentials: "include"
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                location.reload();
-            } else {
-                alert("Error: " + (data.error || "Failed to delete product"));
-            }
-        })
-        .catch(err => alert("Connection error while deleting product."));
-    }
-
-    function executeStockTransfer() {
-        const productId = document.getElementById("transferProductId").value;
-        const shop = document.getElementById("transferShop").value;
-        const qty = parseInt(document.getElementById("transferQty").value);
-
-        fetch("/api/allocate_stock", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ product_id: productId, shop: shop, qty: qty })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                location.reload();
-            } else {
-                alert("Error: " + (data.error || "Transfer failed"));
-            }
-        })
-        .catch(err => alert("Connection error during transfer."));
-    }
-
-    function executeStockTransferModal(productId) {
-        document.getElementById("transferProductId").value = productId;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
     
-    function executeRestock() {
-        const productId = document.getElementById("restockProductId").value;
-        const qty = parseInt(document.getElementById("restockQty").value);
-
-        if (!qty || qty <= 0) {
-            alert("Please enter a valid quantity to restock.");
-            return;
-        }
-
-        fetch("/api/restock_product", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ product_id: productId, qty: qty })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert(data.message);
-                location.reload();
-            } else {
-                alert("Error: " + (data.error || "Restock failed"));
-            }
-        })
-        .catch(err => alert("Connection error during restock."));
-    }
-
-    </script>
 </body>
 </html>

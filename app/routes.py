@@ -1,6 +1,6 @@
 # type: ignore
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
-from app.models import db, Product, StoreStock, Sale, SaleItem
+from app.models import db, Product, StoreStock, Sale, SaleItem, User
 from datetime import datetime
 
 main_bp = Blueprint('main', __name__)
@@ -87,6 +87,48 @@ def owner_dashboard():
         print(f"Error in owner_dashboard: {e}")
         return redirect(url_for('main.login'))
 
+@main_bp.route('/api/sell', methods=['POST'])
+def sell():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.get_json()
+    items = data.get('items', [])
+    store_id = session.get('store_id') or request.args.get('store_id', 'shop1')
+    if session.get('role') == 'owner':
+        store_id = request.args.get('store_id', 'shop1')
+
+    total_amount = 0
+    for item in items:
+        product = Product.query.get(item['product_id'])
+        if product and (product.stock or 0) >= item['quantity']:
+            product.stock -= item['quantity']
+            total_amount += product.price * item['quantity']
+        else:
+            return jsonify({'error': f"Insufficient stock for {product.name if product else 'item'}"}), 400
+
+    sale = Sale(total_amount=total_amount, store_id=store_id, user_id=session['user_id'])
+    db.session.add(sale)
+    db.session.commit()
+
+    return jsonify({'success': True, 'total_amount': total_amount})
+
+@main_bp.route('/api/products', methods=['POST'])
+def add_product():
+    if 'user_id' not in session or session.get('role') != 'owner':
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    name = data.get('name')
+    price = data.get('price')
+    stock = data.get('stock', 0)
+    store_id = data.get('store_id', 'shop1')
+
+    product = Product(name=name, price=price, main_stock=stock, store_id=store_id)
+    db.session.add(product)
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Product added successfully'})
+
 @main_bp.route('/api/restock_product', methods=['POST'])
 def api_restock_product():
     try:
@@ -139,3 +181,56 @@ def api_transfer_stock():
 def logout():
     session.clear()
     return redirect(url_for('main.login'))
+
+@main_bp.route('/pos/add/<int:product_id>', methods=['POST'])
+def add_to_cart(product_id):
+    if 'user_id' not in session:
+        return redirect(url_for('main.login'))
+        
+    cart = session.get('cart', [])
+    product = Product.query.get_or_404(product_id)
+
+    found = False
+    for item in cart:
+        if item.get('product_id') == product_id:
+            item['quantity'] += 1
+            item['subtotal'] = item['quantity'] * product.price
+            found = True
+            break
+            
+    if not found:
+        cart.append({
+            'product_id': product.id,
+            'name': product.name,
+            'price': product.price,
+            'quantity': 1,
+            'subtotal': product.price
+        })
+        
+    session['cart'] = cart
+    session.modified = True
+    return redirect(url_for('main.pos'))
+
+@main_bp.route('/pos/complete', methods=['POST'])
+def complete_sale():
+    if 'user_id' not in session:
+        return redirect(url_for('main.login'))
+    cart = session.get('cart', [])
+    if not cart:
+        return redirect(url_for('main.pos'))
+    
+    store_id = session.get('shop') or session.get('store_id') or 'shop1'
+    total_amount = sum(item['subtotal'] for item in cart)
+    
+    sale = Sale(total_amount=total_amount, store_id=store_id, user_id=session['user_id'])
+    db.session.add(sale)
+    
+    for item in cart:
+        product = Product.query.get(item['product_id'])
+        if product:
+            product.main_stock = max(0, (product.main_stock or 0) - item['quantity'])
+            
+    db.session.commit()
+    session.pop('cart', None)
+    session.modified = True
+    return redirect(url_for('main.pos'))

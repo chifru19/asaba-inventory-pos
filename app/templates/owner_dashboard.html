@@ -235,14 +235,7 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     
-    function executeRestock() {
-        const productId = document.getElementById("restockProductId").value;
-        const qty = parseInt(document.getElementById("restockQty").value);
-
-        if (!qty || qty <= 0) {
-            alert("Please enter a valid quantity to restock.");
-            return;
-        }
+    
 
         fetch("/restock", {
             method: "POST",

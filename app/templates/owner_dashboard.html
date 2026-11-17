@@ -142,5 +142,27 @@
         </div>
     </div>
 
+
+<script>
+function handleRestock(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    fetch('/restock', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            alert('Restock failed. Please check your inputs.');
+        }
+    })
+    .catch(err => alert('Network error during restock.'));
+}
+</script>
+
 </body>
 </html>

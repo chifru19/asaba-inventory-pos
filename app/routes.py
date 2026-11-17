@@ -1,5 +1,7 @@
+# type: ignore
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
 from app.models import db, Product, StoreStock, Sale, SaleItem
+
 
 
 from app.extensions import db

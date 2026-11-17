@@ -252,6 +252,34 @@ def api_restock_product():
 @login_required
 def api_restock_product():
     try:
+        data = request.get_json(silent=True) or request.form
+        product_id = data.get('product_id')
+        qty = int(data.get('qty') or data.get('quantity') or 0)
+
+        product = Product.query.get(product_id)
+        if not product:
+            if request.is_json:
+                return jsonify({'success': False, 'error': 'Product not found'}), 404
+            flash('Product not found.', 'danger')
+            return redirect(url_for('main.owner_dashboard'))
+
+        product.main_stock = (product.main_stock or 0) + qty
+        db.session.commit()
+
+        if request.is_json:
+            return jsonify({'success': True, 'message': f'Successfully restocked {qty} units of {product.name}!'})
+        
+        flash(f'Successfully restocked {qty} units of {product.name}!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        if request.is_json:
+            return jsonify({'success': False, 'error': str(e)}), 500
+        flash(f'Error during restock: {str(e)}', 'danger')
+
+    return redirect(url_for('main.owner_dashboard'))
+@login_required
+def api_restock_product():
+    try:
         data = request.get_json(silent=True)
         if not data:
             data = request.form

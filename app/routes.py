@@ -276,3 +276,24 @@ def api_restock_product():
         if request.is_json:
             return jsonify({'success': False, 'error': str(e)}), 500
         return str(e), 500
+
+
+@main_bp.route('/restock', methods=['POST'])
+@login_required
+def restock_product():
+    try:
+        product_id = request.form.get('product_id')
+        qty = int(request.form.get('qty', 0))
+
+        product = Product.query.get(product_id)
+        if product:
+            product.main_stock = (product.main_stock or 0) + qty
+            db.session.commit()
+            flash(f'Successfully restocked {qty} units of {product.name}!', 'success')
+        else:
+            flash('Product not found.', 'danger')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error during restock: {str(e)}', 'danger')
+
+    return redirect(url_for('main.owner_dashboard'))

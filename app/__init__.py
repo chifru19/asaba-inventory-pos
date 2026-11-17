@@ -10,11 +10,243 @@ from .models import Product, Sale, User
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'asaba-secret-key-2026'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///asaba.db'
+    
+    # Configure Database (PostgreSQL on Render or SQLite locally)
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url and database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///asaba.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(app)
     migrate = Migrate(app, db)
+
+    # Register /health check directly on main app for Render load balancer reliability
+    @app.route('/health')
+    def health():
+        return {"status": "healthy"}, 200
+
+    @app.route('/')
+    def index():
+        if 'user_id' in session:
+            user = User.query.get(session['user_id'])
+            if user and user.role == 'owner':
+                return redirect(url_for('owner_dashboard'))
+            else:
+                return redirect(url_for('pos'))
+        return redirect(url_for('login'))
+
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        if request.method == 'POST':
+            username = request.form.get('username')
+            password = request.form.get('password')
+
+            user = User.query.filter_by(username=username).first()
+            pwd_field = getattr(user, 'password_hash', None) or getattr(user, 'password', None)
+            if user and pwd_field and check_password_hash(pwd_field, password):
+                session['user_id'] = user.id
+                session['role'] = user.role
+                session['store_id'] = user.store_id
+                session['shop'] = user.store_id
+                if user.role == 'owner':
+                    return redirect(url_for('owner_dashboard'))
+                else:
+                    return redirect(url_for('pos'))
+            return render_template('login.html', error="Invalid username or password")
+        return render_template('login.html')
+
+    @app.route('/logout')
+    def logout():
+        session.clear()
+        return redirect(url_for('login'))
+
+    @app.route('/pos')
+    def pos():
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        user = User.query.get(session['user_id'])
+        raw_products = Product.query.all()
+        username = user.username if user else 'shop1'
+        store_name = username.upper()
+
+        products = []
+        for p in raw_products:
+            if '3' in username:
+                stk = getattr(p, 'shop3_stock', 0) or getattr(p, 'stock', 0) or 5
+            elif '2' in username:
+                stk = getattr(p, 'shop2_stock', 0) or getattr(p, 'stock', 0) or 5
+            else:
+                stk = getattr(p, 'shop1_stock', 0) or getattr(p, 'stock', 0) or 5
+
+            products.append({
+                "id": p.id,
+                "name": p.name,
+                "price": p.price,
+                "stock": stk
+            })
+        return render_template('pos.html', products=products, store_name=store_name, username=username)
+
+    @app.route('/owner')
+    @app.route('/owner_dashboard')
+    def owner_dashboard():
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        products = Product.query.all()
+
+        today = date.today()
+        sales_today = Sale.query.filter(db.func.date(Sale.created_at) == today).all()
+
+        shop_sales = {'shop1': 0, 'shop2': 0, 'shop3': 0}
+        shop_revenue = {'shop1': 0.0, 'shop2': 0.0, 'shop3': 0.0}
+
+        for s in sales_today:
+            s_shop = getattr(s, 'store_id', 'shop1')
+            if s_shop in shop_sales:
+                shop_sales[s_shop] += 1
+                shop_revenue[s_shop] += float(s.total_amount or 0)
+
+        return render_template('owner_dashboard.html', products=products, shop_sales=shop_sales, shop_revenue=shop_revenue)
+
+    @app.route('/api/products', methods=['POST'])
+    def add_product():
+        if session.get('role') != 'owner':
+            return jsonify({"error": "Unauthorized"}), 403
+        try:
+            data = request.get_json() or {}
+            name = data.get('name')
+            price = float(data.get('price', 0))
+            main_stock = int(data.get('main_stock', 0))
+
+            if not name or price <= 0:
+                return jsonify({"error": "Invalid product name or price"}), 400
+
+            new_prod = Product(
+                name=name,
+                price=price,
+                main_stock=main_stock,
+                shop1_stock=0,
+                shop2_stock=0,
+                shop3_stock=0,
+                store_id='shop1'
+            )
+            db.session.add(new_prod)
+            db.session.commit()
+            return jsonify({"success": True, "message": "Product added successfully!"})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/products/<int:product_id>', methods=['DELETE'])
+    def delete_product(product_id):
+        if session.get('role') != 'owner':
+            return jsonify({"error": "Unauthorized"}), 403
+        try:
+            prod = Product.query.get(product_id)
+            if not prod:
+                return jsonify({"error": "Product not found"}), 404
+
+            db.session.delete(prod)
+            db.session.commit()
+            return jsonify({"success": True, "message": "Product deleted successfully!"})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/sales', methods=['GET', 'POST'])
+    def handle_sales():
+        if request.method == 'POST':
+            try:
+                data = request.get_json() or {}
+                items = data.get('items', [])
+                total = data.get('total', 0)
+                shop = data.get('shop', 'shop1')
+
+                sale = Sale(total_amount=total, store_id=shop, user_id=session.get('user_id', 1), created_at=datetime.utcnow())
+                db.session.add(sale)
+
+                for item in items:
+                    p_id = item.get('id')
+                    q = int(item.get('qty', 1))
+                    prod = Product.query.get(p_id)
+                    if prod:
+                        shop_attr = f"{shop}_stock"
+                        current_stk = getattr(prod, shop_attr, 0) or 0
+                        setattr(prod, shop_attr, max(0, current_stk - q))
+
+                db.session.commit()
+                return jsonify({"success": True, "message": "Sale recorded successfully!"})
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({"error": str(e)}), 500
+        else:
+            sales = Sale.query.order_by(Sale.id.desc()).limit(20).all()
+            return jsonify([{
+                "id": s.id,
+                "total": s.total_amount,
+                "shop": s.store_id,
+                "timestamp": s.created_at.strftime('%Y-%m-%d %H:%M:%S') if s.created_at else str(s.created_at)
+            } for s in sales])
+
+    @app.route('/api/restock', methods=['POST'])
+    def restock_product():
+        if session.get('role') != 'owner':
+            return jsonify({"error": "Unauthorized"}), 403
+        try:
+            data = request.get_json() or {}
+            product_id = data.get('product_id')
+            qty = int(data.get('qty', 0))
+
+            product = Product.query.get(product_id)
+            if not product:
+                return jsonify({"error": "Product not found"}), 404
+
+            if qty <= 0:
+                return jsonify({"error": "Quantity must be greater than zero"}), 400
+
+            product.main_stock = (product.main_stock or 0) + qty
+            db.session.commit()
+
+            return jsonify({
+                "success": True, 
+                "message": f"Successfully restocked {qty} units of {product.name}. New Main Stock: {product.main_stock}"
+            })
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/allocate', methods=['POST'])
+    def allocate_stock():
+        try:
+            data = request.get_json() or {}
+            product_id = data.get('product_id')
+            shop = data.get('shop')
+            qty = int(data.get('qty', 0))
+
+            if qty <= 0:
+                return jsonify({"error": "Transfer quantity must be greater than zero."}), 400
+
+            product = Product.query.get(product_id)
+            if not product:
+                return jsonify({"error": "Product not found"}), 404
+
+            shop_attr = f"{shop}_stock"
+            if not hasattr(product, shop_attr):
+                return jsonify({"error": "Invalid shop target"}), 400
+
+            if product.main_stock < qty:
+                return jsonify({"error": f"Insufficient main stock! Available: {product.main_stock}"}), 400
+
+            product.main_stock -= qty
+            current_shop_stk = getattr(product, shop_attr, 0) or 0
+            setattr(product, shop_attr, current_shop_stk + qty)
+
+            db.session.commit()
+            return jsonify({"success": True, "message": f"Successfully transferred {qty} units to {shop.upper()}! Main stock updated."})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
 
     with app.app_context():
         db.create_all()
@@ -118,216 +350,6 @@ def create_app():
         except Exception as e:
             print("Seeding error:", e)
             db.session.rollback()
-
-    def health():
-        return {"status": "healthy"}, 200
-
-    def index():
-        if 'user_id' in session:
-            user = User.query.get(session['user_id'])
-            if user and user.role == 'owner':
-                return redirect(url_for('owner_dashboard'))
-            else:
-                return redirect(url_for('pos'))
-        return redirect(url_for('login'))
-
-        if request.method == 'POST':
-            username = request.form.get('username')
-            password = request.form.get('password')
-
-            user = User.query.filter_by(username=username).first()
-            pwd_field = getattr(user, 'password_hash', None) or getattr(user, 'password', None)
-        if user and pwd_field and check_password_hash(pwd_field, password):
-                session['user_id'] = user.id
-                session['role'] = user.role
-                if user.role == 'owner':
-                    return redirect(url_for('owner_dashboard'))
-                else:
-                    return redirect(url_for('pos'))
-
-    def logout():
-        session.clear()
-        return redirect(url_for('login'))
-
-    def pos():
-        if 'user_id' not in session:
-            return redirect(url_for('login'))
-        user = User.query.get(session['user_id'])
-        raw_products = Product.query.all()
-        username = user.username if user else 'shop1'
-        store_name = username.upper()
-
-        products = []
-        for p in raw_products:
-            if '3' in username:
-                stk = getattr(p, 'shop3_stock', 0) or getattr(p, 'stock', 0) or 5
-            elif '2' in username:
-                stk = getattr(p, 'shop2_stock', 0) or getattr(p, 'stock', 0) or 5
-            else:
-                stk = getattr(p, 'shop1_stock', 0) or getattr(p, 'stock', 0) or 5
-
-            products.append({
-                "id": p.id,
-                "name": p.name,
-                "price": p.price,
-                "stock": stk
-            })
-
-
-    def owner_dashboard():
-        if 'user_id' not in session:
-            return redirect(url_for('login'))
-        products = Product.query.all()
-
-        today = date.today()
-        sales_today = Sale.query.filter(db.func.date(Sale.created_at) == today).all()
-
-        shop_sales = {'shop1': 0, 'shop2': 0, 'shop3': 0}
-        shop_revenue = {'shop1': 0.0, 'shop2': 0.0, 'shop3': 0.0}
-
-        for s in sales_today:
-            s_shop = getattr(s, 'store_id', 'shop1')
-            if s_shop in shop_sales:
-                shop_sales[s_shop] += 1
-                shop_revenue[s_shop] += float(s.total_amount or 0)
-
-    def add_product():
-        if session.get('role') != 'owner':
-            return jsonify({"error": "Unauthorized"}), 403
-        try:
-            data = request.get_json() or {}
-            name = data.get('name')
-            price = float(data.get('price', 0))
-            main_stock = int(data.get('main_stock', 0))
-
-            if not name or price <= 0:
-                return jsonify({"error": "Invalid product name or price"}), 400
-
-            new_prod = Product(
-                name=name,
-                price=price,
-                main_stock=main_stock,
-                shop1_stock=0,
-                shop2_stock=0,
-                shop3_stock=0,
-                store_id='shop1'
-            )
-            db.session.add(new_prod)
-            db.session.commit()
-            return jsonify({"success": True, "message": "Product added successfully!"})
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": str(e)}), 500
-
-    def delete_product(product_id):
-        if session.get('role') != 'owner':
-            return jsonify({"error": "Unauthorized"}), 403
-        try:
-            prod = Product.query.get(product_id)
-            if not prod:
-                return jsonify({"error": "Product not found"}), 404
-
-            db.session.delete(prod)
-            db.session.commit()
-            return jsonify({"success": True, "message": "Product deleted successfully!"})
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": str(e)}), 500
-
-    def handle_sales():
-        if request.method == 'POST':
-            try:
-                data = request.get_json() or {}
-                items = data.get('items', [])
-                total = data.get('total', 0)
-                shop = data.get('shop', 'shop1')
-
-                sale = Sale(total_amount=total, store_id=shop, user_id=session.get('user_id', 1), created_at=datetime.utcnow())
-                db.session.add(sale)
-
-                for item in items:
-                    p_id = item.get('id')
-                    q = int(item.get('qty', 1))
-                    prod = Product.query.get(p_id)
-                    if prod:
-                        shop_attr = f"{shop}_stock"
-                        current_stk = getattr(prod, shop_attr, 0) or 0
-                        setattr(prod, shop_attr, max(0, current_stk - q))
-
-                db.session.commit()
-                return jsonify({"success": True, "message": "Sale recorded successfully!"})
-            except Exception as e:
-                db.session.rollback()
-                return jsonify({"error": str(e)}), 500
-        else:
-            sales = Sale.query.order_by(Sale.id.desc()).limit(20).all()
-            return jsonify([{
-                "id": s.id,
-                "total": s.total_amount,
-                "shop": s.store_id,
-                "timestamp": s.created_at.strftime('%Y-%m-%d %H:%M:%S') if s.created_at else str(s.created_at)
-            } for s in sales])
-
-
-    def restock_product():
-        if session.get('role') != 'owner':
-            return jsonify({"error": "Unauthorized"}), 403
-        try:
-            data = request.get_json() or {}
-            product_id = data.get('product_id')
-            qty = int(data.get('qty', 0))
-
-            product = Product.query.get(product_id)
-            if not product:
-                return jsonify({"error": "Product not found"}), 404
-
-            if qty <= 0:
-                return jsonify({"error": "Quantity must be greater than zero"}), 400
-
-            product.main_stock = (product.main_stock or 0) + qty
-            db.session.commit()
-
-            return jsonify({
-                "success": True, 
-                "message": f"Successfully restocked {qty} units of {product.name}. New Main Stock: {product.main_stock}"
-            })
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": str(e)}), 500
-
-
-
-    def allocate_stock():
-        try:
-            data = request.get_json() or {}
-            product_id = data.get('product_id')
-            shop = data.get('shop')
-            qty = int(data.get('qty', 0))
-
-            if qty <= 0:
-                return jsonify({"error": "Transfer quantity must be greater than zero."}), 400
-
-            product = Product.query.get(product_id)
-            if not product:
-                return jsonify({"error": "Product not found"}), 404
-
-            shop_attr = f"{shop}_stock"
-            if not hasattr(product, shop_attr):
-                return jsonify({"error": "Invalid shop target"}), 400
-
-            if product.main_stock < qty:
-                return jsonify({"error": f"Insufficient main stock! Available: {product.main_stock}"}), 400
-
-            product.main_stock -= qty
-            current_shop_stk = getattr(product, shop_attr, 0) or 0
-            setattr(product, shop_attr, current_shop_stk + qty)
-
-            db.session.commit()
-            return jsonify({"success": True, "message": f"Successfully transferred {qty} units to {shop.upper()}! Main stock updated."})
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": str(e)}), 500
-
 
     def get_stock(product, store_id):
         if store_id == 'shop1':

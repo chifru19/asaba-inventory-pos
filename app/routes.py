@@ -1,10 +1,6 @@
 # type: ignore
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
 from app.models import db, Product, StoreStock, Sale, SaleItem
-
-
-
-from app.extensions import db
 from datetime import datetime
 
 main_bp = Blueprint('main', __name__)
@@ -53,7 +49,6 @@ def pos():
     session['shop'] = store_id
     
     search_query = request.args.get('search', '').strip()
-    
     products = Product.query.filter_by(store_id=store_id).all()
     cart = session.get('cart', [])
     total = sum(item['subtotal'] for item in cart)
@@ -76,7 +71,7 @@ def owner_dashboard():
             return redirect(url_for('main.login'))
             
         selected_store = request.args.get('store_id', 'shop1')
-        products = Product.query.filter_by(store_id=selected_store).all()
+        products = Product.query.all()
         sales = Sale.query.filter_by(store_id=selected_store).all()
         total_sales = sum(s.total_amount for s in sales) if sales else 0
         
@@ -92,198 +87,7 @@ def owner_dashboard():
         print(f"Error in owner_dashboard: {e}")
         return redirect(url_for('main.login'))
 
-@main_bp.route('/api/sell', methods=['POST'])
-def sell():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-    
-    data = request.get_json()
-    items = data.get('items', [])
-    store_id = session.get('store_id') or request.args.get('store_id', 'shop1')
-    if session.get('role') == 'owner':
-        store_id = request.args.get('store_id', 'shop1')
-
-    total_amount = 0
-    for item in items:
-        product = Product.query.get(item['product_id'])
-        if product and product.stock >= item['quantity']:
-            product.stock -= item['quantity']
-            total_amount += product.price * item['quantity']
-        else:
-            return jsonify({'error': f"Insufficient stock for {product.name if product else 'item'}"}), 400
-
-    sale = Sale(total_amount=total_amount, store_id=store_id, user_id=session['user_id'])
-    db.session.add(sale)
-    db.session.commit()
-
-    return jsonify({'success': True, 'total_amount': total_amount})
-
-@main_bp.route('/api/products', methods=['POST'])
-def add_product():
-    if 'user_id' not in session or session.get('role') != 'owner':
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    data = request.get_json()
-    name = data.get('name')
-    price = data.get('price')
-    stock = data.get('stock')
-    store_id = data.get('store_id', 'shop1')
-
-    product = Product(name=name, price=price, stock=stock, store_id=store_id)
-    db.session.add(product)
-    db.session.commit()
-    return jsonify({'success': True, 'message': 'Product added successfully'})
-
-@main_bp.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('main.login'))
-
-@main_bp.route('/pos/add/<int:product_id>', methods=['POST'])
-def add_to_cart(product_id):
-    if 'user_id' not in session:
-        return redirect(url_for('main.login'))
-        
-    cart = session.get('cart', [])
-    product = Product.query.get_or_404(product_id)
-
-    found = False
-    for item in cart:
-        if item.get('product_id') == product_id:
-            item['quantity'] += 1
-            item['subtotal'] = item['quantity'] * product.price
-            found = True
-            break
-            
-    if not found:
-        cart.append({
-            'product_id': product.id,
-            'name': product.name,
-            'price': product.price,
-            'quantity': 1,
-            'subtotal': product.price
-        })
-        
-    session['cart'] = cart
-    session.modified = True
-    return redirect(url_for('main.pos'))
-
-@main_bp.route('/pos/complete', methods=['POST'])
-def complete_sale():
-    if 'user_id' not in session:
-        return redirect(url_for('main.login'))
-    cart = session.get('cart', [])
-    if not cart:
-        return redirect(url_for('main.pos'))
-    
-    store_id = session.get('shop') or session.get('store_id') or 'shop1'
-    total_amount = sum(item['subtotal'] for item in cart)
-    
-    sale = Sale(total_amount=total_amount, store_id=store_id, user_id=session['user_id'])
-    db.session.add(sale)
-    
-    for item in cart:
-        product = Product.query.get(item['product_id'])
-        if product:
-            product.stock = max(0, product.stock - item['quantity'])
-            
-    db.session.commit()
-    session.pop('cart', None)
-    session.modified = True
-    return redirect(url_for('main.pos'))
-@app.route('/api/transfer_stock', methods=['POST'])
-def transfer_stock():
-    try:
-        data = request.get_json()
-        product_id = data.get('product_id')
-        shop_name = data.get('shop_name')
-        quantity = int(data.get('quantity', 0))
-
-        # Find product in main stock
-        product = Product.query.get(product_id)
-        if not product or product.main_stock < quantity:
-            return jsonify({'success': False, 'message': 'Insufficient main stock'}), 400
-
-        product.main_stock -= quantity
-
-        # Update shop stock
-        store_stock = StoreStock.query.filter_by(product_id=product_id, store_id=shop_name).first()
-        if store_stock:
-            store_stock.quantity += quantity
-        else:
-            new_store_stock = StoreStock(product_id=product_id, store_id=shop_name, quantity=quantity)
-            db.session.add(new_store_stock)
-
-        db.session.commit()
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-@app.route('/transfer_stock', methods=['POST'])
-@app.route('/api/transfer_stock', methods=['POST'])
-def handle_stock_transfer():
-    try:
-        data = request.get_json() or request.form
-        product_id = data.get('product_id') or data.get('productId')
-        shop_name = data.get('shop_name') or data.get('store_id')
-        quantity = int(data.get('quantity', 0))
-
-        product = Product.query.get(product_id)
-        if not product:
-            return jsonify({'success': False, 'message': 'Product not found'}), 404
-            
-        if product.main_stock < quantity:
-            return jsonify({'success': False, 'message': 'Insufficient main stock'}), 400
-
-        product.main_stock -= quantity
-
-        store_stock = StoreStock.query.filter_by(product_id=product_id, store_id=shop_name).first()
-        if store_stock:
-            store_stock.quantity += quantity
-        else:
-            new_store_stock = StoreStock(product_id=product_id, store_id=shop_name, quantity=quantity)
-            db.session.add(new_store_stock)
-
-        db.session.commit()
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-@app.route('/api/transfer_stock', methods=['POST'])
-def api_transfer_stock():
-    try:
-        data = request.get_json(silent=True) or request.form
-        product_id = data.get('product_id') or data.get('productId') or data.get('product')
-        shop_name = data.get('shop_name') or data.get('destination_shop') or data.get('shop')
-        quantity = int(data.get('quantity', 0))
-
-        product = Product.query.get(product_id)
-        if not product:
-            return jsonify({'success': False, 'message': 'Product not found'}), 404
-
-        if product.main_stock < quantity:
-            return jsonify({'success': False, 'message': 'Insufficient main stock'}), 400
-
-        product.main_stock -= quantity
-
-        store_stock = StoreStock.query.filter_by(product_id=product_id, store_id=shop_name).first()
-        if store_stock:
-            store_stock.quantity += quantity
-        else:
-            new_store_stock = StoreStock(product_id=product_id, store_id=shop_name, quantity=quantity)
-            db.session.add(new_store_stock)
-
-        db.session.commit()
-        
-        if request.is_json:
-            return jsonify({'success': True})
-        return redirect(url_for('owner_dashboard'))
-    except Exception as e:
-        db.session.rollback()
-        if request.is_json:
-            return jsonify({'success': False, 'message': str(e)}), 500
-        return str(e), 500
-
-@app.route('/api/restock_product', methods=['POST'])
+@main_bp.route('/api/restock_product', methods=['POST'])
 def api_restock_product():
     try:
         data = request.get_json(silent=True) or request.form
@@ -301,7 +105,7 @@ def api_restock_product():
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@app.route('/api/transfer_stock', methods=['POST'])
+@main_bp.route('/api/transfer_stock', methods=['POST'])
 def api_transfer_stock():
     try:
         data = request.get_json(silent=True) or request.form
@@ -330,3 +134,8 @@ def api_transfer_stock():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
+
+@main_bp.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('main.login'))

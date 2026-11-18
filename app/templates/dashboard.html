@@ -1,53 +1,44 @@
-{% extends "base.html" %}
-{% block content %}
-<h2>Dashboard - Asaba Ngu Store</h2>
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card text-white bg-success mb-3">
-            <div class="card-header">Today's Total Sales</div>
-            <div class="card-body">
-                <h3 class="card-title">${{ "%.2f"|format(total_sales_today) }}</h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card text-white bg-primary mb-3">
-            <div class="card-header">Total Registered Products</div>
-            <div class="card-body">
-                <h3 class="card-title">{{ total_products }}</h3>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mt-4">
-    <div class="col-md-6">
-        <h4>Low Stock Reorder Alerts</h4>
-        {% if reorder_products %}
-        <ul class="list-group">
-            {% for p in reorder_products %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                {{ p.name }} (SKU: {{ p.sku }})
-                <span class="badge bg-danger rounded-pill">Stock: {{ p.stock_quantity }} (Min: {{ p.min_threshold }})</span>
-            </li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        <p class="text-success">All products are sufficiently stocked!</p>
-        {% endif %}
-    </div>
-    <div class="col-md-6">
-        <h4>Today's Sales Transactions</h4>
-        <ul class="list-group">
-            {% for s in todays_sales %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                Sale ID #{{ s.id }}
-                <span>${{ "%.2f"|format(s.total_amount) }}</span>
-            </li>
-            {% else %}
-            <p class="text-muted">No sales recorded yet today.</p>
-            {% endfor %}
-        </ul>
-    </div>
-</div>
-{% endblock %}
+@main_bp.route('/owner')
+@main_bp.route('/owner_dashboard')
+def owner_dashboard():
+    try:
+        if 'user_id' not in session or session.get('role') != 'owner':
+            return redirect(url_for('main.login'))
+            
+        selected_store = request.args.get('store_id', 'shop1')
+        
+        # Fetch products and sales for the selected store
+        products = Product.query.filter_by(store_id=selected_store).all() if hasattr(Product, 'store_id') else Product.query.all()
+        sales = Sale.query.filter_by(store_id=selected_store).all()
+        
+        total_sales_today = sum(s.total_amount for s in sales) if sales else 0
+        total_products = len(products)
+        
+        # Calculate low stock reorder alerts dynamically
+        reorder_products = []
+        for p in products:
+            stock = getattr(p, 'main_stock', getattr(p, 'stock', 0)) or 0
+            min_thresh = getattr(p, 'min_threshold', 5)
+            
+            # Map attributes expected by the template
+            p.stock_quantity = stock
+            p.min_threshold = min_thresh
+            if not hasattr(p, 'sku') or not p.sku:
+                p.sku = f"SKU-{p.id}"
+                
+            if stock <= min_thresh:
+                reorder_products.append(p)
+        
+        return render_template(
+            'owner_dashboard.html', 
+            total_sales_today=total_sales_today,
+            total_products=total_products,
+            reorder_products=reorder_products,
+            todays_sales=sales,
+            selected_store=selected_store,
+            products=products,
+            sales=sales
+        )
+    except Exception as e:
+        print(f"Error in owner_dashboard: {e}")
+        return redirect(url_for('main.login'))

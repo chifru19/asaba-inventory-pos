@@ -192,7 +192,7 @@ def create_app():
                 "timestamp": s.created_at.strftime('%Y-%m-%d %H:%M:%S') if s.created_at else str(s.created_at)
             } for s in sales])
 
-    @app.route('/api/restock', methods=['POST'])
+    
     def restock_product():
         if session.get('role') != 'owner':
             return jsonify({"error": "Unauthorized"}), 403

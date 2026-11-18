@@ -23,6 +23,8 @@ def login_required(f):
 
 
 
+
+
 @main_bp.route('/api/restock', methods=['GET', 'POST'])
 @main_bp.route('/restock', methods=['GET', 'POST'])
 @login_required
@@ -30,8 +32,12 @@ def restock_product():
     if request.method == 'GET':
         return redirect(url_for('main.owner_dashboard'))
     try:
-        # force=True prevents Flask from checking Content-Type and raising 415 errors
-        data = request.get_json(force=True, silent=True) or request.form
+        # Only call get_json if the request is actually JSON, avoiding 415 errors entirely
+        if request.is_json:
+            data = request.get_json(silent=True) or {}
+        else:
+            data = request.form or request.values or {}
+            
         product_id = data.get('product_id')
         raw_qty = data.get('qty') or data.get('quantity') or 0
         qty = int(raw_qty) if str(raw_qty).strip() else 0

@@ -21,6 +21,8 @@ def login_required(f):
 
 
 
+
+
 @main_bp.route('/api/restock', methods=['GET', 'POST'])
 @main_bp.route('/restock', methods=['GET', 'POST'])
 @login_required
@@ -28,22 +30,32 @@ def restock_product():
     if request.method == 'GET':
         return redirect(url_for('main.owner_dashboard'))
     try:
-        data = request.get_json(silent=True) or request.form
+        # force=True prevents Flask from checking Content-Type and raising 415 errors
+        data = request.get_json(force=True, silent=True) or request.form
         product_id = data.get('product_id')
         raw_qty = data.get('qty') or data.get('quantity') or 0
         qty = int(raw_qty) if str(raw_qty).strip() else 0
         
-        product = Product.query.get(product_id)
-        if product:
-            product.main_stock = (product.main_stock or 0) + qty
-            db.session.commit()
+        if not product_id:
             if request.is_json:
-                return jsonify({'success': True, 'message': f'Successfully restocked {qty} units of {product.name}!'})
-            flash(f'Successfully restocked {qty} units of {product.name}!', 'success')
-        else:
+                return jsonify({'success': False, 'error': 'Product ID missing'}), 400
+            flash('Product ID is missing.', 'danger')
+            return redirect(url_for('main.owner_dashboard'))
+            
+        product = Product.query.get(product_id)
+        if not product:
             if request.is_json:
                 return jsonify({'success': False, 'error': 'Product not found'}), 404
             flash('Product not found.', 'danger')
+            return redirect(url_for('main.owner_dashboard'))
+            
+        product.main_stock = (product.main_stock or 0) + qty
+        db.session.commit()
+        
+        if request.is_json:
+            return jsonify({'success': True, 'message': f'Successfully restocked {qty} units of {product.name}!'})
+            
+        flash(f'Successfully restocked {qty} units of {product.name}!', 'success')
     except Exception as e:
         db.session.rollback()
         if request.is_json:

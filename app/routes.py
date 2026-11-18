@@ -64,3 +64,36 @@ def restock_product():
         flash(f'Error during restock: {str(e)}', 'danger')
         
     return redirect(url_for('main.owner_dashboard'))
+
+
+@main_bp.route('/restock', methods=['GET', 'POST'])
+@main_bp.route('/api/restock_product', methods=['GET', 'POST'])
+@login_required
+def restock_product():
+    if request.method == 'GET':
+        return redirect(url_for('main.owner_dashboard'))
+    try:
+        data = request.form or request.values or (request.get_json(silent=True) if request.is_json else {}) or {}
+        
+        product_id = data.get('product_id')
+        raw_qty = data.get('qty') or data.get('quantity') or 0
+        qty = int(raw_qty) if str(raw_qty).strip() else 0
+        
+        if not product_id:
+            flash('Product ID is missing.', 'danger')
+            return redirect(url_for('main.owner_dashboard'))
+            
+        product = Product.query.get(product_id)
+        if not product:
+            flash('Product not found.', 'danger')
+            return redirect(url_for('main.owner_dashboard'))
+            
+        product.main_stock = (product.main_stock or 0) + qty
+        db.session.commit()
+        
+        flash(f'Successfully restocked {qty} units of {product.name}!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error during restock: {str(e)}', 'danger')
+        
+    return redirect(url_for('main.owner_dashboard'))

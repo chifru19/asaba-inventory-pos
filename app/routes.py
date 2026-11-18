@@ -29,6 +29,8 @@ def login_required(f):
 
 
 
+
+
 @main_bp.route('/api/restock', methods=['GET', 'POST'])
 @main_bp.route('/restock', methods=['GET', 'POST'])
 @login_required

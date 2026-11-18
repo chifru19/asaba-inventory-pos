@@ -27,6 +27,8 @@ def login_required(f):
 
 
 
+
+
 @main_bp.route('/api/restock', methods=['GET', 'POST'])
 @main_bp.route('/restock', methods=['GET', 'POST'])
 @login_required
@@ -34,7 +36,7 @@ def restock_product():
     if request.method == 'GET':
         return redirect(url_for('main.owner_dashboard'))
     try:
-        # Strictly check if Content-Type is application/json before parsing JSON
+        # Safely parse data whether it's JSON, form-data, or query parameters
         if request.is_json:
             data = request.get_json(silent=True) or {}
         else:
@@ -45,20 +47,29 @@ def restock_product():
         qty = int(raw_qty) if str(raw_qty).strip() else 0
         
         if not product_id:
+            if request.is_json:
+                return jsonify({'success': False, 'error': 'Product ID missing'}), 400
             flash('Product ID is missing.', 'danger')
             return redirect(url_for('main.owner_dashboard'))
             
         product = Product.query.get(product_id)
         if not product:
+            if request.is_json:
+                return jsonify({'success': False, 'error': 'Product not found'}), 404
             flash('Product not found.', 'danger')
             return redirect(url_for('main.owner_dashboard'))
             
         product.main_stock = (product.main_stock or 0) + qty
         db.session.commit()
         
+        if request.is_json:
+            return jsonify({'success': True, 'message': f'Successfully restocked {qty} units of {product.name}!'})
+            
         flash(f'Successfully restocked {qty} units of {product.name}!', 'success')
     except Exception as e:
         db.session.rollback()
+        if request.is_json:
+            return jsonify({'success': False, 'error': str(e)}), 500
         flash(f'Error during restock: {str(e)}', 'danger')
         
     return redirect(url_for('main.owner_dashboard'))
